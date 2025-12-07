@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Models;
 using System.Linq;
 using System;
+using System.Linq.Expressions;
 
 namespace Data.Sqlite
 {
@@ -27,9 +28,14 @@ namespace Data.Sqlite
         {
             return await _context.SaveChangesAsync() > 0;
         }
-        public async Task<IEnumerable<Panel>> GetAllPanels()
+        public async Task<IEnumerable<Panel>> GetAllPanels(Expression<Func<Panel, bool>> filter = null)
         {
-            return await _context.Panels.ToListAsync();
+            IQueryable<Panel> query = _context.Panels;
+
+            if (filter != null)
+                query = query.Where(filter);
+
+            return await query.ToListAsync();
         }
         public async Task<Panel?> GetPanelById(int id)
         {

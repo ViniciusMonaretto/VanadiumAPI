@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Models;
+using System.Linq.Expressions;
 
 namespace Data.Sqlite
 {
@@ -9,7 +10,7 @@ namespace Data.Sqlite
         void Add<T>(T entity) where T : class;
         void Delete<T>(T entity) where T : class;
         Task<bool> SaveAll();
-        Task<IEnumerable<Panel>> GetAllPanels();
+        Task<IEnumerable<Panel>> GetAllPanels(Expression<Func<Panel, bool>> filter = null);
         Task<Panel?> GetPanelById(int id);
         Task<IEnumerable<Group>> GetAllGroups();
         Task<Group?> GetGroupById(int id);

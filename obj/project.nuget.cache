@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "XnzaxVeB6jn6Xq0v1JUmulHQ3otGBr3zJRGoBCeP7EIYjbTZsPobTxdeVyrTn9DKQFnAZ10i2rQZXHEYJqrcVw==",
+  "dgSpecHash": "TF2wsnHTtYQiRcZIM/2HB8Nt/Q3eNQcExzdjdIWRe00pAF+kDJ7JlXxjEGj1Az4sAcb1+afqn4qjbznJJL3aWg==",
   "success": true,
   "projectFilePath": "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/VanadiumAPI.csproj",
   "expectedPackageFiles": [
+    "/home/vini/.nuget/packages/dnsclient/1.6.1/dnsclient.1.6.1.nupkg.sha512",
     "/home/vini/.nuget/packages/humanizer.core/2.14.1/humanizer.core.2.14.1.nupkg.sha512",
     "/home/vini/.nuget/packages/microsoft.aspnetcore.authentication.abstractions/2.3.0/microsoft.aspnetcore.authentication.abstractions.2.3.0.nupkg.sha512",
     "/home/vini/.nuget/packages/microsoft.aspnetcore.authorization/2.3.0/microsoft.aspnetcore.authorization.2.3.0.nupkg.sha512",
@@ -56,9 +57,15 @@
     "/home/vini/.nuget/packages/microsoft.extensions.options/8.0.2/microsoft.extensions.options.8.0.2.nupkg.sha512",
     "/home/vini/.nuget/packages/microsoft.extensions.primitives/8.0.0/microsoft.extensions.primitives.8.0.0.nupkg.sha512",
     "/home/vini/.nuget/packages/microsoft.net.http.headers/2.3.0/microsoft.net.http.headers.2.3.0.nupkg.sha512",
+    "/home/vini/.nuget/packages/microsoft.netcore.platforms/5.0.0/microsoft.netcore.platforms.5.0.0.nupkg.sha512",
+    "/home/vini/.nuget/packages/microsoft.win32.registry/5.0.0/microsoft.win32.registry.5.0.0.nupkg.sha512",
+    "/home/vini/.nuget/packages/mongodb.bson/3.5.2/mongodb.bson.3.5.2.nupkg.sha512",
+    "/home/vini/.nuget/packages/mongodb.driver/3.5.2/mongodb.driver.3.5.2.nupkg.sha512",
     "/home/vini/.nuget/packages/mono.texttemplating/2.2.1/mono.texttemplating.2.2.1.nupkg.sha512",
     "/home/vini/.nuget/packages/mqttnet/5.0.1.1416/mqttnet.5.0.1.1416.nupkg.sha512",
     "/home/vini/.nuget/packages/newtonsoft.json/11.0.2/newtonsoft.json.11.0.2.nupkg.sha512",
+    "/home/vini/.nuget/packages/sharpcompress/0.30.1/sharpcompress.0.30.1.nupkg.sha512",
+    "/home/vini/.nuget/packages/snappier/1.0.0/snappier.1.0.0.nupkg.sha512",
     "/home/vini/.nuget/packages/sqlitepclraw.bundle_e_sqlite3/2.1.6/sqlitepclraw.bundle_e_sqlite3.2.1.6.nupkg.sha512",
     "/home/vini/.nuget/packages/sqlitepclraw.core/2.1.6/sqlitepclraw.core.2.1.6.nupkg.sha512",
     "/home/vini/.nuget/packages/sqlitepclraw.lib.e_sqlite3/2.1.6/sqlitepclraw.lib.e_sqlite3.2.1.6.nupkg.sha512",
@@ -73,15 +80,18 @@
     "/home/vini/.nuget/packages/system.composition.runtime/6.0.0/system.composition.runtime.6.0.0.nupkg.sha512",
     "/home/vini/.nuget/packages/system.composition.typedparts/6.0.0/system.composition.typedparts.6.0.0.nupkg.sha512",
     "/home/vini/.nuget/packages/system.io.pipelines/10.0.0/system.io.pipelines.10.0.0.nupkg.sha512",
-    "/home/vini/.nuget/packages/system.memory/4.5.3/system.memory.4.5.3.nupkg.sha512",
+    "/home/vini/.nuget/packages/system.memory/4.5.5/system.memory.4.5.5.nupkg.sha512",
     "/home/vini/.nuget/packages/system.net.websockets.websocketprotocol/5.1.0/system.net.websockets.websocketprotocol.5.1.0.nupkg.sha512",
     "/home/vini/.nuget/packages/system.reflection.emit/4.7.0/system.reflection.emit.4.7.0.nupkg.sha512",
     "/home/vini/.nuget/packages/system.reflection.metadata/6.0.1/system.reflection.metadata.6.0.1.nupkg.sha512",
     "/home/vini/.nuget/packages/system.runtime.compilerservices.unsafe/6.0.0/system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",
+    "/home/vini/.nuget/packages/system.security.accesscontrol/5.0.0/system.security.accesscontrol.5.0.0.nupkg.sha512",
+    "/home/vini/.nuget/packages/system.security.principal.windows/5.0.0/system.security.principal.windows.5.0.0.nupkg.sha512",
     "/home/vini/.nuget/packages/system.text.encoding.codepages/6.0.0/system.text.encoding.codepages.6.0.0.nupkg.sha512",
     "/home/vini/.nuget/packages/system.text.encodings.web/10.0.0/system.text.encodings.web.10.0.0.nupkg.sha512",
     "/home/vini/.nuget/packages/system.text.json/10.0.0/system.text.json.10.0.0.nupkg.sha512",
-    "/home/vini/.nuget/packages/system.threading.channels/8.0.0/system.threading.channels.8.0.0.nupkg.sha512"
+    "/home/vini/.nuget/packages/system.threading.channels/8.0.0/system.threading.channels.8.0.0.nupkg.sha512",
+    "/home/vini/.nuget/packages/zstdsharp.port/0.7.3/zstdsharp.port.0.7.3.nupkg.sha512"
   ],
   "logs": []
 }
