@@ -45,7 +45,7 @@ namespace Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            using var scope = _provider.CreateScope();
+           
             // 1. Wait until the next round minute
             await WaitUntilNextFullMinute(stoppingToken);
 
@@ -54,8 +54,16 @@ namespace Services
 
             do 
             {
+                using var scope = _provider.CreateScope();
+                var now = DateTime.Now;
                 var panelReadingRepo = scope.ServiceProvider.GetRequiredService<IPanelReadingRepository>();
-                var panelReadings = _lastPanelReadings.Values.ToList();
+                var panelReadings = _lastPanelReadings.Values.Where(x => now - x.ReadingTime < TimeSpan.FromSeconds(90)).ToList();
+
+                if (panelReadings.Count == 0)
+                {
+                    continue;
+                }
+                
                 if(panelReadings.Count > 0)
                 {
                     await panelReadingRepo.AddAsync(panelReadings);
@@ -76,12 +84,12 @@ namespace Services
             var panelInfoRepo = scope.ServiceProvider.GetRequiredService<IPanelInfoRepository>();
             var panels = (await panelInfoRepo
                                     .GetAllPanels(x => x.GatewayId == e.GatewayId))
-                                    .ToDictionary(p => p.Id, p => p);
+                                    .ToDictionary(p => p.Index, p => p);
 
             for(var i = 0; i < e.GatewayData.Sensors.Count; i++)
             {
                 var sensor =  e.GatewayData.Sensors[i];
-                if(!panels.TryGetValue(i, out var panel))
+                if(!panels.TryGetValue(i.ToString(), out var panel))
                 {
                     _logger.LogError($"Panel not found: {i}");
                     continue;
@@ -90,6 +98,7 @@ namespace Services
                 {
                     PanelId = panel.Id,
                     ReadingTime = e.GatewayData.Timestamp,
+                    Value = sensor.Value,
                 };
 
                 _lastPanelReadings.AddOrUpdate( panel.Id, panelReading, (key, existing) => panelReading);

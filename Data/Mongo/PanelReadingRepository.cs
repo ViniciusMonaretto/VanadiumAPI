@@ -20,7 +20,31 @@ namespace Data.Mongo
 
         public async Task AddAsync(IEnumerable<PanelReading> panelReadings)
         {
-            await _collection.InsertManyAsync(panelReadings);
+            var options = new InsertManyOptions
+            {
+                IsOrdered = false // Continue inserting even if some documents fail
+            };
+            
+            try
+            {
+                await _collection.InsertManyAsync(panelReadings, options);
+            }
+            catch (MongoBulkWriteException<PanelReading> ex)
+            {
+                // Log duplicate key errors but don't fail completely
+                // Other documents may have been inserted successfully
+                var duplicateErrors = ex.WriteErrors
+                    .Where(e => e.Category == ServerErrorCategory.DuplicateKey)
+                    .ToList();
+                
+                if (duplicateErrors.Count < ex.WriteErrors.Count)
+                {
+                    // Some documents were inserted successfully, so partial success
+                    throw;
+                }
+                // If all errors are duplicates, we can ignore them
+                // (this means the data was already inserted)
+            }
         }
 
         public async Task<IEnumerable<PanelReading>> GetPanelReadingsByPanelId(int panelId, DateTime? startDate, DateTime? endDate)
