@@ -1,11 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "TF2wsnHTtYQiRcZIM/2HB8Nt/Q3eNQcExzdjdIWRe00pAF+kDJ7JlXxjEGj1Az4sAcb1+afqn4qjbznJJL3aWg==",
+  "dgSpecHash": "BqDj+ZxwzIMbpd7OX0qS4RoH32FJsZkrNFT2uByNtu/TRlQoK74m/E2ngAKD0BkF6Uf12qa50NXAr9JXW4WqjQ==",
   "success": true,
   "projectFilePath": "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/VanadiumAPI.csproj",
   "expectedPackageFiles": [
+    "/home/vini/.nuget/packages/confluent.kafka/2.12.0/confluent.kafka.2.12.0.nupkg.sha512",
     "/home/vini/.nuget/packages/dnsclient/1.6.1/dnsclient.1.6.1.nupkg.sha512",
     "/home/vini/.nuget/packages/humanizer.core/2.14.1/humanizer.core.2.14.1.nupkg.sha512",
+    "/home/vini/.nuget/packages/librdkafka.redist/2.12.0/librdkafka.redist.2.12.0.nupkg.sha512",
     "/home/vini/.nuget/packages/microsoft.aspnetcore.authentication.abstractions/2.3.0/microsoft.aspnetcore.authentication.abstractions.2.3.0.nupkg.sha512",
     "/home/vini/.nuget/packages/microsoft.aspnetcore.authorization/2.3.0/microsoft.aspnetcore.authorization.2.3.0.nupkg.sha512",
     "/home/vini/.nuget/packages/microsoft.aspnetcore.authorization.policy/2.3.0/microsoft.aspnetcore.authorization.policy.2.3.0.nupkg.sha512",

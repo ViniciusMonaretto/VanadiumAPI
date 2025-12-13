@@ -1,3 +1,11 @@
 /build
 */venv
 app.db*
+# Pastas bin (compilação)
+bin/
+**/bin/
+*/bin
+obj/
+**/obj/
+*/obj
+/obj

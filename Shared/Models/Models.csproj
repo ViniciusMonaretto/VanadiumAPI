@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    
+    <!-- Informações do pacote (caso queira publicar como NuGet) -->
+    <PackageId>Models</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>IoCloud</Authors>
+    <Company>IoCloud</Company>
+    <Description>Modelos e interfaces compartilhados para a plataforma de sensores</Description>
+    <PackageTags>iot;sensors;common;models</PackageTags>
+    <RepositoryType>git</RepositoryType>
+    
+    <!-- Documentação -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    
+    <!-- Geração de símbolos -->
+    <DebugType>embedded</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="MongoDB.Driver" Version="3.5.2" />
+  </ItemGroup>
+
+</Project>

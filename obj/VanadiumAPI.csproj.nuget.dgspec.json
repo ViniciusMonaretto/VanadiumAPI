@@ -38,6 +38,10 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Confluent.Kafka": {
+              "target": "Package",
+              "version": "[2.12.0, )"
+            },
             "MQTTnet": {
               "target": "Package",
               "version": "[5.0.1.1416, )"
