@@ -1,0 +1,109 @@
+{
+	"folders": [
+		{
+			"path": "SensorDataServer"
+		},
+		{
+			"path": "MqttGateway"
+		},
+		{
+			"path": "SensorInfoServer"
+		}
+	],
+	"settings": {},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "MqttGateway Launch",
+				"type": "coreclr",
+				"request": "launch",
+				"preLaunchTask": "Build MqttGateway",
+				"program": "${workspaceFolder:MqttGateway}/build/bin/Debug/net8.0/MqttGateway.dll",
+				"args": [],
+				"cwd": "${workspaceFolder:MqttGateway}",
+				"console": "internalConsole",
+				"stopAtEntry": false
+			},
+			{
+				"name": "SensorDataServer Launch",
+				"type": "coreclr",
+				"request": "launch",
+				"preLaunchTask": "Build SensorDataServer",
+				"program": "${workspaceFolder:SensorDataServer}/build/bin/Debug/net8.0/SensorDataServer.dll",
+				"args": [],
+				"cwd": "${workspaceFolder:SensorDataServer}",
+				"console": "internalConsole",
+				"stopAtEntry": false
+			},
+			{
+				"name": "SensorInfoServer Launch",
+				"type": "coreclr",
+				"request": "launch",
+				"preLaunchTask": "Build SensorInfoServer",
+				"program": "${workspaceFolder:SensorInfoServer}/build/bin/Debug/net8.0/SensorInfoServer.dll",
+				"args": [],
+				"cwd": "${workspaceFolder:SensorInfoServer}",
+				"console": "internalConsole",
+				"stopAtEntry": false
+			}
+		],
+		"compounds": [
+			{
+				"name": "VanadiumMicroservices",
+				"configurations": [
+					"MqttGateway Launch",
+					"SensorDataServer Launch",
+					"SensorInfoServer Launch"
+				]
+			}
+		]
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "Build MqttGateway",
+				"type": "shell",
+				"command": "dotnet",
+				"args": [
+					"build",
+					"${workspaceFolder:MqttGateway}/MqttGateway.csproj",
+					"/property:BaseOutputPath=${workspaceFolder:MqttGateway}/build/bin/"
+				],
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				}
+			},
+			{
+				"label": "Build SensorDataServer",
+				"type": "shell",
+				"command": "dotnet",
+				"args": [
+					"build",
+					"${workspaceFolder:SensorDataServer}/SensorDataServer.csproj",
+					"/property:BaseOutputPath=${workspaceFolder:SensorDataServer}/build/bin/"
+				],
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				}
+			},
+			{
+				"label": "Build SensorInfoServer",
+				"type": "shell",
+				"command": "dotnet",
+				"args": [
+					"build",
+					"${workspaceFolder:SensorInfoServer}/SensorInfoServer.csproj",
+					"/property:BaseOutputPath=${workspaceFolder:SensorInfoServer}/build/bin/"
+				],
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				}
+			}
+		]
+	}
+}
