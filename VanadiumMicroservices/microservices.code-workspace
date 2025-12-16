@@ -1,15 +1,23 @@
 {
 	"folders": [
 		{
+			"name": "SensorDataServer",
 			"path": "SensorDataServer"
 		},
 		{
+			"name": "MqttGateway",
 			"path": "MqttGateway"
 		},
 		{
+			"name": "SensorInfoServer",
 			"path": "SensorInfoServer"
 		},
 		{
+			"name": "HubConnectorServer",
+			"path": "HubConnectorServer"
+		},
+		{
+			"name": "Shared",
 			"path": "../Shared"
 		}
 	],
@@ -49,6 +57,17 @@
 				"cwd": "${workspaceFolder:SensorInfoServer}",
 				"console": "internalConsole",
 				"stopAtEntry": false
+			},
+			{
+				"name": "HubConnectorServer Launch",
+				"type": "coreclr",
+				"request": "launch",
+				"preLaunchTask": "Build HubConnectorServer",
+				"program": "${workspaceFolder:HubConnectorServer}/build/bin/Debug/net8.0/HubConnectorServer.dll",
+				"args": [],
+				"cwd": "${workspaceFolder:HubConnectorServer}",
+				"console": "internalConsole",
+				"stopAtEntry": false
 			}
 		],
 		"compounds": [
@@ -57,7 +76,8 @@
 				"configurations": [
 					"MqttGateway Launch",
 					"SensorDataServer Launch",
-					"SensorInfoServer Launch"
+					"SensorInfoServer Launch",
+					"HubConnectorServer Launch"
 				]
 			}
 		]
@@ -101,6 +121,20 @@
 					"build",
 					"${workspaceFolder:SensorInfoServer}/SensorInfoServer.csproj",
 					"/property:BaseOutputPath=${workspaceFolder:SensorInfoServer}/build/bin/"
+				],
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				}
+			},
+			{
+				"label": "Build HubConnectorServer",
+				"type": "shell",
+				"command": "dotnet",
+				"args": [
+					"build",
+					"${workspaceFolder:HubConnectorServer}/HubConnectorServer.csproj",
+					"/property:BaseOutputPath=${workspaceFolder:HubConnectorServer}/build/bin/"
 				],
 				"group": {
 					"kind": "build",
