@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "SensorInfoServer"
+		},
+		{
+			"path": "../Shared"
 		}
 	],
 	"settings": {},

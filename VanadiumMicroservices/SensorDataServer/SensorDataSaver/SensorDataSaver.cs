@@ -6,8 +6,9 @@ using System.Text.Json;
 using System.Collections.Concurrent;
 using Confluent.Kafka;
 using Shared.Models;
-using Data.Sqlite;
 using Data.Mongo;
+using System.Net.Http;
+using Microsoft.Extensions.Configuration;
 
 namespace SensorDataSaver
 {
@@ -18,19 +19,25 @@ namespace SensorDataSaver
             = new();
         private readonly ILogger<SensorDataSaver> _logger;
         private readonly IServiceProvider _provider;
-        private readonly string _kafkaTopic;
         private readonly JsonSerializerOptions _jsonOptions;
+        private readonly ConcurrentDictionary<string, Panel> _panels = new();
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly string _sensorInfoServerBaseUrl;
 
         public SensorDataSaver(
             IOptions<KafkaOptions> kafkaOptions,
-            ILogger<SensorDataSaver> logger, 
-            IServiceProvider provider)
+            ILogger<SensorDataSaver> logger,
+            IServiceProvider provider,
+            IHttpClientFactory httpClientFactory,
+            IConfiguration configuration)
         {
             _logger = logger;
             _provider = provider;
+            _httpClientFactory = httpClientFactory;
+            _sensorInfoServerBaseUrl = configuration.GetSection("SensorInfoServer")["BaseUrl"] 
+                ?? "http://localhost:5000";
 
             var kafka = kafkaOptions.Value;
-            _kafkaTopic = "sensor-data";
 
             // Configure JSON serializer options
             _jsonOptions = new JsonSerializerOptions
@@ -64,7 +71,46 @@ namespace SensorDataSaver
                 .SetErrorHandler((_, e) => _logger.LogError("Kafka consumer error: {Reason}", e.Reason))
                 .SetLogHandler((_, m) => _logger.LogInformation("Kafka log: {Message}", m.Message))
                 .Build();
+
+            // Fetch panels from SensorInfoServer
+            _ = Task.Run(async () => await LoadPanelsAsync());
         }
+
+        private async Task LoadPanelsAsync()
+        {
+            try
+            {
+                using var httpClient = _httpClientFactory.CreateClient();
+                var url = $"{_sensorInfoServerBaseUrl}/api/sensorInfo";
+                _logger.LogInformation("Fetching panels from SensorInfoServer: {Url}", url);
+
+                var response = await httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var panels = JsonSerializer.Deserialize<IEnumerable<Panel>>(jsonContent, _jsonOptions);
+
+                if (panels != null)
+                {
+                    foreach (var panel in panels)
+                    {
+                        var panelKey = $"{panel.GatewayId}-{panel.Index}";
+                        _panels.AddOrUpdate(panelKey, panel, (key, existing) => panel);
+                        _logger.LogDebug("Loaded panel: {Key} (Id: {Id}, Name: {Name})", panelKey, panel.Id, panel.Name);
+                    }
+                    _logger.LogInformation("Successfully loaded {Count} panels from SensorInfoServer", _panels.Count);
+                }
+                else
+                {
+                    _logger.LogWarning("No panels returned from SensorInfoServer");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading panels from SensorInfoServer");
+            }
+        }
+
         public Task<bool> SubscribeAsync(string topic)
         {
             return Task.FromResult(true);
@@ -86,8 +132,8 @@ namespace SensorDataSaver
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             // Subscribe to Kafka topic
-            _kafkaConsumer.Subscribe(_kafkaTopic);
-            _logger.LogInformation("Subscribed to Kafka topic: {Topic}", _kafkaTopic);
+            _kafkaConsumer.Subscribe("sensor-data");
+            _logger.LogInformation("Subscribed to Kafka topic: {Topic}", "sensor-data");
 
             // Start Kafka consumer task
             var consumerTask = Task.Run(() => ConsumeKafkaMessagesAsync(stoppingToken), stoppingToken);
@@ -190,15 +236,11 @@ namespace SensorDataSaver
 
             using var scope = _provider.CreateScope();
 
-            var panelInfoRepo = scope.ServiceProvider.GetRequiredService<IPanelInfoRepository>();
-            var panels = (await panelInfoRepo
-                                    .GetAllPanels(x => x.GatewayId == message.GatewayId))
-                                    .ToDictionary(p => p.Index, p => p);
-
             for(var i = 0; i < message.GatewayData.Sensors.Count; i++)
             {
                 var sensor = message.GatewayData.Sensors[i];
-                if(!panels.TryGetValue(i.ToString(), out var panel))
+                var sensorKey = $"{message.GatewayId}-{i}";
+                if (!_panels.TryGetValue(sensorKey, out var panel))
                 {
                     _logger.LogError("Panel not found: {Index} for GatewayId: {GatewayId}", i, message.GatewayId);
                     continue;

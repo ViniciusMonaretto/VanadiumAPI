@@ -1,0 +1,6 @@
+@HubConnectorServer_HostAddress = http://localhost:5196
+
+GET {{HubConnectorServer_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

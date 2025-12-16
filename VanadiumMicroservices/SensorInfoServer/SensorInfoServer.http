@@ -1,6 +1,0 @@
-@SensorInfoServer_HostAddress = http://localhost:5076
-
-GET {{SensorInfoServer_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

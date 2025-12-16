@@ -58,7 +58,7 @@ namespace Mqtt
 
             // KAFKA Setup
             var kafka = kafkaOptions.Value;
-            _kafkaTopic = kafka.Topic;
+            _kafkaTopic = "sensor-data";
 
             var config = new ProducerConfig
             {

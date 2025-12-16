@@ -1,15 +1,17 @@
 using Data.Mongo;
 using MongoDB.Driver;
 using SensorDataSaver;
-using Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Shared.Models;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.AddDbContext<SqliteDataContext>(options =>
-    options.UseSqlite("Data Source=app.db"));
+// Configure Kafka options
+builder.Services.Configure<KafkaOptions>(
+    builder.Configuration.GetSection("KafkaOptions"));
 
-builder.Services.AddScoped<IPanelInfoRepository, PanelInfoRepository>();
+// Register HttpClient for HTTP requests
+builder.Services.AddHttpClient();
 
 // Register sensor data saver as both a singleton and hosted service
 builder.Services.AddHostedService<SensorDataSaver.SensorDataSaver>();
