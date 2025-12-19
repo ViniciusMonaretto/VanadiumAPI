@@ -30,7 +30,7 @@ namespace Data.Sqlite
         }
         public async Task<IEnumerable<Panel>> GetAllPanels(Expression<Func<Panel, bool>> filter = null)
         {
-            IQueryable<Panel> query = _context.Panels;
+            IQueryable<Panel> query = _context.Panels.Include(p => p.Alarms);
 
             if (filter != null)
                 query = query.Where(filter);
@@ -39,23 +39,33 @@ namespace Data.Sqlite
         }
         public async Task<Panel?> GetPanelById(int id)
         {
-            return await _context.Panels.FindAsync(id);
+            return await _context.Panels
+                .Include(p => p.Alarms)
+                .FirstOrDefaultAsync(p => p.Id == id);
         }
         public async Task<IEnumerable<Group>> GetAllGroups()
         {
-            return await _context.Groups.ToListAsync();
+            return await _context.Groups
+                .Include(g => g.Panels)
+                .ToListAsync();
         }
         public async Task<Group?> GetGroupById(int id)
         {
-            return await _context.Groups.FindAsync(id);
+            return await _context.Groups
+                .Include(g => g.Panels)
+                .FirstOrDefaultAsync(g => g.Id == id);
         }
         public async Task<IEnumerable<Alarm>> GetAllAlarms()
         {
-            return await _context.Alarms.ToListAsync();
+            return await _context.Alarms
+                .Include(a => a.AlarmEvents)
+                .ToListAsync();
         }
         public async Task<Alarm?> GetAlarmById(int id)
         {
-            return await _context.Alarms.FindAsync(id);
+            return await _context.Alarms
+                .Include(a => a.AlarmEvents)
+                .FirstOrDefaultAsync(a => a.Id == id);
         }
         public async Task<IEnumerable<AlarmEvent>> GetAllAlarmEvents()
         {

@@ -45,7 +45,8 @@
 				"args": [],
 				"cwd": "${workspaceFolder:SensorDataServer}",
 				"console": "internalConsole",
-				"stopAtEntry": false
+				"stopAtEntry": false,
+				"dependsOn": "SensorInfoServer Launch"
 			},
 			{
 				"name": "SensorInfoServer Launch",
@@ -67,7 +68,8 @@
 				"args": [],
 				"cwd": "${workspaceFolder:HubConnectorServer}",
 				"console": "internalConsole",
-				"stopAtEntry": false
+				"stopAtEntry": false,
+				"dependsOn": "SensorInfoServer Launch"
 			}
 		],
 		"compounds": [
@@ -75,8 +77,8 @@
 				"name": "VanadiumMicroservices",
 				"configurations": [
 					"MqttGateway Launch",
-					"SensorDataServer Launch",
 					"SensorInfoServer Launch",
+					"SensorDataServer Launch",
 					"HubConnectorServer Launch"
 				]
 			}

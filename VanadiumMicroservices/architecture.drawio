@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="KsOwq8G5-cbiUNX7PtrT" name="Page-1">
-        <mxGraphModel dx="1617" dy="474" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+        <mxGraphModel dx="1784" dy="799" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -12,6 +12,9 @@
                 </mxCell>
                 <mxCell id="3" value="Signal R Communication" style="rounded=0;whiteSpace=wrap;html=1;" parent="2" vertex="1">
                     <mxGeometry x="40" y="40" width="120" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="57" value="PORT: HTTP 5010/ HTTPS 5011" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="2">
+                    <mxGeometry y="70" width="200" height="30" as="geometry"/>
                 </mxCell>
                 <mxCell id="5" value="Sensor Info Service" style="swimlane;whiteSpace=wrap;html=1;startSize=23;" parent="1" vertex="1">
                     <mxGeometry x="-290" y="610" width="200" height="120" as="geometry"/>
@@ -78,10 +81,10 @@
                         <mxPoint x="520" y="645" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="50" value="" style="endArrow=none;html=1;edgeStyle=orthogonalEdgeStyle;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="1" source="10" target="40" edge="1">
+                <mxCell id="50" value="" style="endArrow=none;html=1;edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;targetPerimeterSpacing=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="10" target="40" edge="1">
                     <mxGeometry width="50" height="50" relative="1" as="geometry">
                         <mxPoint x="380" y="860" as="sourcePoint"/>
-                        <mxPoint x="-80" y="765" as="targetPoint"/>
+                        <mxPoint x="-70" y="800" as="targetPoint"/>
                         <Array as="points">
                             <mxPoint x="370" y="910"/>
                             <mxPoint x="-80" y="910"/>
@@ -96,6 +99,12 @@
                         <mxPoint x="450" y="700" as="sourcePoint"/>
                         <mxPoint x="550" y="600" as="targetPoint"/>
                     </mxGeometry>
+                </mxCell>
+                <mxCell id="55" value="PORT: 5000" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="-260" y="730" width="90" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="56" value="PORT: 5001" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="-25" y="730" width="90" height="30" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>

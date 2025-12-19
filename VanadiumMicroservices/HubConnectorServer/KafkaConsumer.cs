@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using API.Hubs;
 using Shared.Models;
 using System.Text.Json;
+
 namespace HubConnectorServer
 {
     public class KafkaConsumerService : BackgroundService
@@ -20,7 +21,16 @@ namespace HubConnectorServer
             _hubContext = hubContext;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            _logger.LogInformation("KafkaConsumerService starting...");
+
+            _ = Task.Run(() => ConsumeLoop(stoppingToken), stoppingToken);
+
+            return Task.CompletedTask;
+        }
+
+        private async Task ConsumeLoop(CancellationToken stoppingToken)
         {
             var config = new ConsumerConfig
             {
@@ -29,67 +39,62 @@ namespace HubConnectorServer
                 AutoOffsetReset = AutoOffsetReset.Earliest
             };
 
-            using var consumer = new ConsumerBuilder<string, string>(config).Build();
-
-            consumer.Subscribe(new[]
+            while (!stoppingToken.IsCancellationRequested)
             {
-                "sensor-data",
-                "panel-change"
-            });
-
-            try
-            {
-                while (!stoppingToken.IsCancellationRequested)
+                try
                 {
-                    var result = consumer.Consume(stoppingToken);
+                    using var consumer = new ConsumerBuilder<string, string>(config).Build();
 
-                    switch (result.Topic)
+                    consumer.Subscribe(new[]
                     {
-                        case "sensor-data":
-                            var sensorData = JsonSerializer.Deserialize<SensorDataMessageModel>(result.Message.Value);
-                            if (sensorData == null)
-                            {
-                                _logger.LogError("Failed to deserialize sensor data: {Value}", result.Message.Value);
-                                continue;
-                            }
-                            await _hubContext.Clients.All.SendAsync(
-                                  "SensorDataReceived",
-                                  sensorData,
-                                  stoppingToken
-                              );
-                            break;
-                        case "panel-change":
-                            var panelChange = JsonSerializer.Deserialize<PanelChangeMessage>(result.Message.Value);
-                            if (panelChange == null)
-                            {
-                                _logger.LogError("Failed to deserialize panel change: {Value}", result.Message.Value);
-                                continue;
-                            }
-                            await _hubContext.Clients.All.SendAsync(
-                                "KafkaMessageReceived",
-                                panelChange,
-                                stoppingToken
-                            );
-                            break;
-                    }
+                        "sensor-data",
+                        "panel-change"
+                    });
 
-                    await _hubContext.Clients.All.SendAsync(
-                        "KafkaMessageReceived",
-                        new
+                    _logger.LogInformation("KafkaConsumerService subscribed to topics");
+
+                    while (!stoppingToken.IsCancellationRequested)
+                    {
+                        var result = consumer.Consume(stoppingToken);
+
+                        switch (result.Topic)
                         {
-                            Topic = result.Topic,
-                            Key = result.Message.Key,
-                            Value = result.Message.Value,
-                            Timestamp = result.Message.Timestamp.UtcDateTime
-                        },
-                        stoppingToken
-                    );
+                            case "sensor-data":
+                                var sensorData = JsonSerializer.Deserialize<SensorDataMessageModel>(result.Message.Value);
+                                if (sensorData != null)
+                                {
+                                    await _hubContext.Clients.All.SendAsync(
+                                        "SensorDataReceived",
+                                        sensorData,
+                                        stoppingToken);
+                                }
+                                break;
+
+                            case "panel-change":
+                                var panelChange = JsonSerializer.Deserialize<PanelChangeMessage>(result.Message.Value);
+                                if (panelChange != null)
+                                {
+                                    await _hubContext.Clients.All.SendAsync(
+                                        "KafkaMessageReceived",
+                                        panelChange,
+                                        stoppingToken);
+                                }
+                                break;
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Kafka error. Retrying in 5 seconds...");
+                    await Task.Delay(5000, stoppingToken);
                 }
             }
-            catch (OperationCanceledException)
-            {
-                consumer.Close();
-            }
+
+            _logger.LogInformation("KafkaConsumerService stopped");
         }
     }
 }
