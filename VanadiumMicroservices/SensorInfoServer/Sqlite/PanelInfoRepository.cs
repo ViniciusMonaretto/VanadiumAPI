@@ -47,12 +47,15 @@ namespace Data.Sqlite
         {
             return await _context.Groups
                 .Include(g => g.Panels)
+                .ThenInclude(p => p.Alarms)
+                .ThenInclude(a => a.AlarmEvents)
                 .ToListAsync();
         }
         public async Task<Group?> GetGroupById(int id)
         {
             return await _context.Groups
                 .Include(g => g.Panels)
+                .ThenInclude(p => p.Alarms)
                 .FirstOrDefaultAsync(g => g.Id == id);
         }
         public async Task<IEnumerable<Alarm>> GetAllAlarms()

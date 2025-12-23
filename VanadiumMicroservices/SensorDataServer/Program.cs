@@ -3,6 +3,7 @@ using MongoDB.Driver;
 using SensorDataSaver;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
+using Shared.ServicesHelpers;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -30,6 +31,11 @@ builder.Services.AddSingleton<IMongoClient>(sp =>
 });
 
 builder.Services.AddScoped<MongoDbInitializer>();
+
+await WaitForServicesHelper.WaitForSensorInfoAsync(new List<string> {  builder.Configuration.GetSection("SensorInfoServer")["BaseUrl"] }, CancellationToken.None);
+
+var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+logger.LogInformation("SensorInfoServer is ready");
 
 var host = builder.Build();
 

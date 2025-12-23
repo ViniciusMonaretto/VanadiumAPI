@@ -2,14 +2,12 @@ using API.Hubs;
 using API.Services;
 using HubConnectorServer;
 using Shared.Models;
+using Shared.ServicesHelpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Explicitly configure the URL to ensure it runs on port 5010
 builder.WebHost.UseUrls("http://localhost:5010");
-
-Console.WriteLine("ASPNETCORE_URLS = " + 
-    Environment.GetEnvironmentVariable("ASPNETCORE_URLS"));
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -43,6 +41,11 @@ builder.Services.AddHttpClient<ISensorInfoService, SensorInfoService>(client =>
     client.BaseAddress = new Uri(sensorInfoServerUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
 });
+
+await WaitForServicesHelper.WaitForSensorInfoAsync(new List<string> {  builder.Configuration.GetSection("SensorInfoServer")["BaseUrl"] }, CancellationToken.None);
+
+var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+logger.LogInformation("SensorInfoServer is ready");
 
 var app = builder.Build();
 

@@ -30,6 +30,22 @@ namespace SensorInfoServer.Controllers
             }
         }
 
+        // GET: api/alarms/events
+        // IMPORTANT: This must come before [HttpGet("{id}")] to avoid route conflicts
+        [HttpGet("events")]
+        public async Task<ActionResult<IEnumerable<AlarmEvent>>> GetAllAlarmEvents()
+        {
+            try
+            {
+                var alarmEvents = await _repository.GetAllAlarmEvents();
+                return Ok(alarmEvents);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving alarm events", error = ex.Message });
+            }
+        }
+
         // GET: api/alarms/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Alarm>> GetAlarmById(int id)
@@ -46,21 +62,6 @@ namespace SensorInfoServer.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Error retrieving alarm", error = ex.Message });
-            }
-        }
-
-        // GET: api/alarms/events
-        [HttpGet("events")]
-        public async Task<ActionResult<IEnumerable<AlarmEvent>>> GetAllAlarmEvents()
-        {
-            try
-            {
-                var alarmEvents = await _repository.GetAllAlarmEvents();
-                return Ok(alarmEvents);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error retrieving alarm events", error = ex.Message });
             }
         }
 
