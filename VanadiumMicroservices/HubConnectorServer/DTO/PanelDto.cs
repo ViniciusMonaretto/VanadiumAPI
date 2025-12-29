@@ -12,6 +12,8 @@ namespace HubConnectorServer.DTO
         public string Color { get; set; }
         public float Gain { get; set; }
         public float Offset { get; set; }
+        public int Multiplier { get; set; }
+        public PanelType Type { get; set; }
         public List<AlarmDto> Alarms { get; set; }
 
         public PanelDto(Panel panel)
@@ -24,6 +26,8 @@ namespace HubConnectorServer.DTO
             Color = panel.Color;
             Gain = panel.Gain;
             Offset = panel.Offset;
+            Multiplier = panel.Multiplier;
+            Type = panel.Type;
             Alarms = panel.Alarms.Select(a => new AlarmDto(a)).ToList();
         }
 

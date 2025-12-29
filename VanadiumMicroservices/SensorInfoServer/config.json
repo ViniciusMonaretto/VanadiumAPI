@@ -12,7 +12,9 @@
             "Index": "0",
             "Color": "red",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 2",
@@ -21,7 +23,9 @@
             "Index": "1",
             "Color": "green",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 3",
@@ -30,7 +34,9 @@
             "Index": "2",
             "Color": "blue",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 4",
@@ -39,7 +45,9 @@
             "Index": "3",
             "Color": "yellow",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 5",
@@ -48,7 +56,9 @@
             "Index": "4",
             "Color": "red",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 6",
@@ -57,7 +67,9 @@
             "Index": "5",
             "Color": "green",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 7",
@@ -66,7 +78,9 @@
             "Index": "6",
             "Color": "blue",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 8",
@@ -75,7 +89,9 @@
             "Index": "7",
             "Color": "yellow",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 9",
@@ -84,7 +100,8 @@
             "Index": "8",
             "Color": "red",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1
         },
         {
             "Name": "Panel 10",
@@ -93,7 +110,9 @@
             "Index": "9",
             "Color": "green",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 11",
@@ -102,7 +121,8 @@
             "Index": "10",
             "Color": "blue",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1
         },
         {
             "Name": "Panel 12",
@@ -111,7 +131,8 @@
             "Index": "11",
             "Color": "yellow",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1
         },
         {
             "Name": "Panel 13",
@@ -120,7 +141,9 @@
             "Index": "12",
             "Color": "red",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 14",
@@ -129,7 +152,9 @@
             "Index": "13",
             "Color": "green",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 15",
@@ -138,7 +163,9 @@
             "Index": "14",
             "Color": "blue",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 16",
@@ -147,7 +174,9 @@
             "Index": "15",
             "Color": "yellow",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 17",
@@ -156,7 +185,9 @@
             "Index": "16",
             "Color": "red",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 18",
@@ -165,7 +196,9 @@
             "Index": "17",
             "Color": "green",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 19",
@@ -174,7 +207,9 @@
             "Index": "18",
             "Color": "blue",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         },
         {
             "Name": "Panel 20",
@@ -183,7 +218,9 @@
             "Index": "19",
             "Color": "yellow",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 0
         }
     ],
     "Alarms": []
