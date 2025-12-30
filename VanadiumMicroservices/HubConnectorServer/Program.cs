@@ -16,7 +16,7 @@ builder.Services.AddSwaggerGen();
 
 // Add SignalR service
 builder.Services.AddSignalR();
-builder.Services.AddHostedService<KafkaConsumerService>();
+builder.Services.AddHostedService<RabbitMQConsumerService>();
 
 // Add CORS if Angular runs on different port
 builder.Services.AddCors(options =>
@@ -30,9 +30,9 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Configure Kafka options
-builder.Services.Configure<KafkaOptions>(
-    builder.Configuration.GetSection("KafkaOptions"));
+// Configure RabbitMQ options
+builder.Services.Configure<RabbitMQOptions>(
+    builder.Configuration.GetSection("RabbitMQOptions"));
 
 // Configure SensorInfoServer HTTP client
 var sensorInfoServerUrl = builder.Configuration["SensorInfoServer:BaseUrl"] ?? "http://localhost:5076";

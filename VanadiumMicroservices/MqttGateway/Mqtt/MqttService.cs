@@ -2,8 +2,9 @@ using MQTTnet;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using System.Threading.Channels;
-using Confluent.Kafka;
+using RabbitMQ.Client;
 using System.Text.Json;
+using System.Text;
 using Shared.Models;
 
 namespace Mqtt
@@ -17,9 +18,10 @@ namespace Mqtt
         private readonly string _brokerHost;
         private readonly int _brokerPort;
 
-        // -------------- KAFKA PRODUCER --------------
-        private readonly IProducer<string, string> _kafkaProducer;
-        private readonly string _kafkaTopic;
+        // -------------- RABBITMQ CONNECTION --------------
+        private readonly IConnection _rabbitMqConnection;
+        private readonly IModel _rabbitMqChannel;
+        private readonly string _exchange;
 
         // -------------- WORKER QUEUE --------------
         private readonly Channel<SensorDataMessageModel> _queue =
@@ -27,7 +29,7 @@ namespace Mqtt
 
         public MqttService(
             IOptions<MqttOptions> mqttOptions, 
-            IOptions<KafkaOptions> kafkaOptions,
+            IOptions<RabbitMQOptions> rabbitMqOptions,
             ILogger<MqttService> logger)
         {
             _logger = logger;
@@ -56,36 +58,57 @@ namespace Mqtt
             _mqttClient.ConnectedAsync += HandleConnected;
             _mqttClient.DisconnectedAsync += HandleDisconnected;
 
-            // KAFKA Setup
-            var kafka = kafkaOptions.Value;
-            _kafkaTopic = "sensor-data";
+            // RABBITMQ Setup
+            var rabbitMq = rabbitMqOptions.Value;
+            _exchange = "sensor-data";
 
-            var config = new ProducerConfig
+            var factory = new ConnectionFactory
             {
-                BootstrapServers = kafka.BootstrapServers,
-                ClientId = kafka.ClientId ?? "mqtt-kafka-bridge",
-                // Configurações de performance
-                Acks = Acks.Leader, // Ou Acks.All para maior confiabilidade
-                LingerMs = 10, // Aguarda 10ms para batching
-                BatchSize = 32768, // 32KB batch
-                CompressionType = CompressionType.Snappy,
-                // Retry
-                MessageSendMaxRetries = 3,
-                RetryBackoffMs = 100
+                HostName = rabbitMq.HostName,
+                Port = rabbitMq.Port,
+                VirtualHost = rabbitMq.VirtualHost ?? "/",
+                UserName = rabbitMq.UserName ?? "guest",
+                Password = rabbitMq.Password ?? "guest",
+                AutomaticRecoveryEnabled = true,
+                NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
             };
 
-            // Adicionar autenticação se necessário
-            if (!string.IsNullOrEmpty(kafka.SaslUsername))
-            {
-                config.SecurityProtocol = SecurityProtocol.SaslSsl;
-                config.SaslMechanism = SaslMechanism.Plain;
-                config.SaslUsername = kafka.SaslUsername;
-                config.SaslPassword = kafka.SaslPassword;
-            }
+            _logger.LogInformation(
+                "Attempting to connect to RabbitMQ at {HostName}:{Port} with user {UserName}",
+                rabbitMq.HostName,
+                rabbitMq.Port,
+                rabbitMq.UserName ?? "guest");
 
-            _kafkaProducer = new ProducerBuilder<string, string>(config)
-                .SetErrorHandler((_, e) => _logger.LogError("Kafka error: {Reason}", e.Reason))
-                .Build();
+            try
+            {
+                _rabbitMqConnection = factory.CreateConnection();
+                _rabbitMqChannel = _rabbitMqConnection.CreateModel();
+                _logger.LogInformation("Successfully connected to RabbitMQ");
+            }
+            catch (RabbitMQ.Client.Exceptions.BrokerUnreachableException ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to connect to RabbitMQ broker at {HostName}:{Port}. " +
+                    "Please ensure RabbitMQ is running and accessible.",
+                    rabbitMq.HostName,
+                    rabbitMq.Port);
+                throw;
+            }
+            catch (RabbitMQ.Client.Exceptions.AuthenticationFailureException ex)
+            {
+                _logger.LogError(ex,
+                    "RabbitMQ authentication failed for user '{UserName}'. " +
+                    "Please verify the username and password in appsettings.json",
+                    rabbitMq.UserName ?? "guest");
+                throw;
+            }
+            
+            // Declare exchange (topic exchange for routing flexibility)
+            _rabbitMqChannel.ExchangeDeclare(
+                exchange: _exchange,
+                type: ExchangeType.Topic,
+                durable: true,
+                autoDelete: false);
         }
 
         // -----------------------------------------
@@ -161,7 +184,7 @@ namespace Mqtt
         }
 
         // -----------------------------------------
-        // PROCESS A BATCH → SEND TO KAFKA
+        // PROCESS A BATCH → SEND TO RABBITMQ
         // -----------------------------------------
         private async Task ProcessBatchAsync(List<SensorDataMessageModel> batch)
         {
@@ -169,44 +192,56 @@ namespace Mqtt
             {
                 _logger.LogInformation("Processing MQTT batch with {Count} items", batch.Count);
 
-                var tasks = new List<Task<DeliveryResult<string, string>>>();
+                var tasks = new List<Task>();
 
                 foreach (var msg in batch)
                 {
                     try
                     {
                         var payload = JsonSerializer.Serialize(msg);
+                        var body = Encoding.UTF8.GetBytes(payload);
                         
-                        var message = new Message<string, string>
+                        // Use GatewayId as routing key - each gateway gets its own routing key
+                        var routingKey = msg.GatewayId;
+
+                        var properties = _rabbitMqChannel.CreateBasicProperties();
+                        properties.Persistent = true; // Make messages persistent
+                        properties.Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                        properties.MessageId = Guid.NewGuid().ToString();
+                        properties.Headers = new Dictionary<string, object>
                         {
-                            Key = msg.GatewayId, // Usa GatewayId como key para particionamento
-                            Value = payload,
-                            Timestamp = new Timestamp(DateTime.UtcNow)
+                            { "GatewayId", msg.GatewayId },
+                            { "Topic", msg.Topic }
                         };
 
-                        // Envio assíncrono (mais rápido)
-                        var task = _kafkaProducer.ProduceAsync(_kafkaTopic, message);
+                        // Publish message asynchronously
+                        var task = Task.Run(() =>
+                        {
+                            _rabbitMqChannel.BasicPublish(
+                                exchange: _exchange,
+                                routingKey: routingKey,
+                                basicProperties: properties,
+                                body: body);
+                        });
                         tasks.Add(task);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Error serializing message for Kafka");
+                        _logger.LogError(ex, "Error serializing message for RabbitMQ");
                     }
                 }
 
-                // Aguarda todos os envios
-                var results = await Task.WhenAll(tasks);
+                // Wait for all publishes to complete
+                await Task.WhenAll(tasks);
                 
-                var successCount = results.Count(r => r.Status == PersistenceStatus.Persisted);
                 _logger.LogInformation(
-                    "Sent {Success}/{Total} messages to Kafka topic {Topic}", 
-                    successCount, 
+                    "Sent {Count} messages to RabbitMQ exchange {Exchange}", 
                     batch.Count, 
-                    _kafkaTopic);
+                    _exchange);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing MQTT batch to Kafka");
+                _logger.LogError(ex, "Error processing MQTT batch to RabbitMQ");
             }
         }
 
@@ -330,8 +365,9 @@ namespace Mqtt
         {
             _queue.Writer.Complete();
 
-            // Flush Kafka producer
-            _kafkaProducer?.Flush(TimeSpan.FromSeconds(10));
+            // Close RabbitMQ connection
+            _rabbitMqChannel?.Close();
+            _rabbitMqConnection?.Close();
 
             if (_mqttClient.IsConnected)
                 await _mqttClient.DisconnectAsync();
@@ -341,7 +377,8 @@ namespace Mqtt
 
         public override void Dispose()
         {
-            _kafkaProducer?.Dispose();
+            _rabbitMqChannel?.Dispose();
+            _rabbitMqConnection?.Dispose();
             _mqttClient?.Dispose();
             base.Dispose();
         }

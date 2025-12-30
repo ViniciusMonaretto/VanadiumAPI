@@ -13,9 +13,9 @@ builder.Services.AddSingleton<IMqttService>(provider =>
 builder.Services.AddHostedService<MqttService>(provider => 
     provider.GetRequiredService<MqttService>());
 
-// Configure Kafka options
-builder.Services.Configure<KafkaOptions>(
-    builder.Configuration.GetSection("KafkaOptions"));
+// Configure RabbitMQ options
+builder.Services.Configure<RabbitMQOptions>(
+    builder.Configuration.GetSection("RabbitMQOptions"));
 
 var host = builder.Build();
 host.Run();

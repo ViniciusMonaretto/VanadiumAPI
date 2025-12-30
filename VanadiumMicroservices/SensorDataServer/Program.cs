@@ -7,9 +7,9 @@ using Shared.ServicesHelpers;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Configure Kafka options
-builder.Services.Configure<KafkaOptions>(
-    builder.Configuration.GetSection("KafkaOptions"));
+// Configure RabbitMQ options
+builder.Services.Configure<RabbitMQOptions>(
+    builder.Configuration.GetSection("RabbitMQOptions"));
 
 // Register HttpClient for HTTP requests
 builder.Services.AddHttpClient();

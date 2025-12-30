@@ -2,72 +2,114 @@ using Data.Sqlite;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Shared.Models;
-using Confluent.Kafka;
+using RabbitMQ.Client;
 using System.Text.Json;
+using System.Text;
 
 namespace SensorInfoServer.Controllers
 {
     [ApiController]
     [Route("api/sensorInfo")]
-    public class PanelInfoController : ControllerBase
+    public class PanelInfoController : ControllerBase, IDisposable
     {
 
         private readonly IPanelInfoRepository _repository;
-        private readonly IProducer<string, string> _kafkaProducer;
+        private readonly IConnection _rabbitMqConnection;
+        private readonly IModel _rabbitMqChannel;
+        private readonly string _panelChangeExchange;
         private readonly ILogger<PanelInfoController> _logger;
-        public PanelInfoController(IPanelInfoRepository panelInfoRepository, IOptions<KafkaOptions> kafkaOptions, ILogger<PanelInfoController> logger)
+        
+        public PanelInfoController(IPanelInfoRepository panelInfoRepository, IOptions<RabbitMQOptions> rabbitMqOptions, ILogger<PanelInfoController> logger)
         {
             _repository = panelInfoRepository;
             _logger = logger;
-            // KAFKA Setup
-            var kafka = kafkaOptions.Value;
+            
+            // RABBITMQ Setup
+            var rabbitMq = rabbitMqOptions.Value;
 
-            var config = new ProducerConfig
+            var factory = new ConnectionFactory
             {
-                BootstrapServers = kafka.BootstrapServers,
-                ClientId = kafka.ClientId ?? "mqtt-kafka-bridge",
-                // Configurações de performance
-                Acks = Acks.Leader, // Ou Acks.All para maior confiabilidade
-                LingerMs = 10, // Aguarda 10ms para batching
-                BatchSize = 32768, // 32KB batch
-                CompressionType = CompressionType.Snappy,
-                // Retry
-                MessageSendMaxRetries = 3,
-                RetryBackoffMs = 100
+                HostName = rabbitMq.HostName,
+                Port = rabbitMq.Port,
+                VirtualHost = rabbitMq.VirtualHost ?? "/",
+                UserName = rabbitMq.UserName ?? "guest",
+                Password = rabbitMq.Password ?? "guest",
+                AutomaticRecoveryEnabled = true,
+                NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
             };
 
-            // Adicionar autenticação se necessário
-            if (!string.IsNullOrEmpty(kafka.SaslUsername))
-            {
-                config.SecurityProtocol = SecurityProtocol.SaslSsl;
-                config.SaslMechanism = SaslMechanism.Plain;
-                config.SaslUsername = kafka.SaslUsername;
-                config.SaslPassword = kafka.SaslPassword;
-            }
+            _logger.LogInformation(
+                "Attempting to connect to RabbitMQ at {HostName}:{Port} with user {UserName}",
+                rabbitMq.HostName,
+                rabbitMq.Port,
+                rabbitMq.UserName ?? "guest");
 
-            _kafkaProducer = new ProducerBuilder<string, string>(config)
-                .SetErrorHandler((_, e) => _logger.LogError("Kafka error: {Reason}", e.Reason))
-                .Build();
+            try
+            {
+                _rabbitMqConnection = factory.CreateConnection();
+                _rabbitMqChannel = _rabbitMqConnection.CreateModel();
+                _logger.LogInformation("Successfully connected to RabbitMQ");
+            }
+            catch (RabbitMQ.Client.Exceptions.BrokerUnreachableException ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to connect to RabbitMQ broker at {HostName}:{Port}. " +
+                    "Please ensure RabbitMQ is running and accessible.",
+                    rabbitMq.HostName,
+                    rabbitMq.Port);
+                throw;
+            }
+            catch (RabbitMQ.Client.Exceptions.AuthenticationFailureException ex)
+            {
+                _logger.LogError(ex,
+                    "RabbitMQ authentication failed for user '{UserName}'. " +
+                    "Please verify the username and password in appsettings.json",
+                    rabbitMq.UserName ?? "guest");
+                throw;
+            }
+            
+            _panelChangeExchange = "panel-change";
+
+            // Declare panel-change exchange
+            _rabbitMqChannel.ExchangeDeclare(
+                exchange: _panelChangeExchange,
+                type: ExchangeType.Topic,
+                durable: true,
+                autoDelete: false);
         }
 
         private async Task SendPanelChangeMessage(PanelChangeAction action, Panel panel)
         {
-            var panelInfo = new PanelChangeMessage
+            try
             {
-                Action = action,
-                Panel = panel
-            };
-            var payload = JsonSerializer.Serialize(panelInfo);
-            var message = new Message<string, string>
-            {
-                Key = "1",
-                Value = payload,
-                Timestamp = new Timestamp(DateTime.UtcNow)
-            };
+                var panelInfo = new PanelChangeMessage
+                {
+                    Action = action,
+                    Panel = panel
+                };
+                var payload = JsonSerializer.Serialize(panelInfo);
+                var body = Encoding.UTF8.GetBytes(payload);
 
-            // Envio assíncrono (mais rápido)
-            var task = _kafkaProducer.ProduceAsync("panel-change", message);
-            await task;
+                var properties = _rabbitMqChannel.CreateBasicProperties();
+                properties.Persistent = true;
+                properties.Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                properties.MessageId = Guid.NewGuid().ToString();
+
+                // Use action as routing key (e.g., "panel-change.create", "panel-change.update", "panel-change.delete")
+                var routingKey = $"panel-change.{action.ToString().ToLower()}";
+
+                _rabbitMqChannel.BasicPublish(
+                    exchange: _panelChangeExchange,
+                    routingKey: routingKey,
+                    basicProperties: properties,
+                    body: body);
+
+                _logger.LogDebug("Published panel change message: {Action} for panel {PanelId}", action, panel.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending panel change message to RabbitMQ");
+            }
         }
         
         // GET: api/panels
@@ -188,6 +230,21 @@ namespace SensorInfoServer.Controllers
             {
                 return StatusCode(500, new { message = "Error deleting panel", error = ex.Message });
             }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _rabbitMqChannel?.Dispose();
+                _rabbitMqConnection?.Dispose();
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }

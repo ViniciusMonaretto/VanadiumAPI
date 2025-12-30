@@ -18,9 +18,9 @@ builder.Services.AddControllers()
 builder.Services.AddDbContext<SqliteDataContext>(options =>
     options.UseSqlite("Data Source=app.db"));
 
-// Configure Kafka options
-builder.Services.Configure<KafkaOptions>(
-    builder.Configuration.GetSection("KafkaOptions"));
+// Configure RabbitMQ options
+builder.Services.Configure<RabbitMQOptions>(
+    builder.Configuration.GetSection("RabbitMQOptions"));
 
 builder.Services.AddScoped<IPanelInfoRepository, PanelInfoRepository>();
 
