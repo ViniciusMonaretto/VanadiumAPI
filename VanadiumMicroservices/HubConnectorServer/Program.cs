@@ -42,6 +42,14 @@ builder.Services.AddHttpClient<ISensorInfoService, SensorInfoService>(client =>
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
+// Configure SensorDataServer HTTP client
+var sensorDataServerUrl = builder.Configuration["SensorDataServer:BaseUrl"] ?? "http://localhost:5001";
+builder.Services.AddHttpClient<IPanelReadingService, PanelReadingService>(client =>
+{
+    client.BaseAddress = new Uri(sensorDataServerUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
 await WaitForServicesHelper.WaitForSensorInfoAsync(new List<string> {  builder.Configuration.GetSection("SensorInfoServer")["BaseUrl"] }, CancellationToken.None);
 
 var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();

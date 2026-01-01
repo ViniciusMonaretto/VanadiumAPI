@@ -7,13 +7,13 @@ namespace API.Services
 {
     public class SensorInfoService : ISensorInfoService
     {
-        private readonly HttpClient _httpClient;
+        private readonly HttpClient _sensorInfoHttpClient;
         private readonly ILogger<SensorInfoService> _logger;
         private readonly JsonSerializerOptions _jsonOptions;
 
-        public SensorInfoService(HttpClient httpClient, ILogger<SensorInfoService> logger)
+        public SensorInfoService(HttpClient sensorInfoHttpClient, ILogger<SensorInfoService> logger)
         {
-            _httpClient = httpClient;
+            _sensorInfoHttpClient = sensorInfoHttpClient;
             _logger = logger;
             _jsonOptions = new JsonSerializerOptions
             {
@@ -26,7 +26,7 @@ namespace API.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync("api/sensorInfo");
+                var response = await _sensorInfoHttpClient.GetAsync("api/sensorInfo");
                 response.EnsureSuccessStatusCode();
                 var result = await response.Content.ReadFromJsonAsync<IEnumerable<Panel>>(_jsonOptions);
                 return result ?? Enumerable.Empty<Panel>();
@@ -42,7 +42,7 @@ namespace API.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync($"api/sensorInfo/{id}");
+                var response = await _sensorInfoHttpClient.GetAsync($"api/sensorInfo/{id}");
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     return null;
                 
@@ -60,7 +60,7 @@ namespace API.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync("api/alarms");
+                var response = await _sensorInfoHttpClient.GetAsync("api/alarms");
                 response.EnsureSuccessStatusCode();
                 var result = await response.Content.ReadFromJsonAsync<IEnumerable<Alarm>>(_jsonOptions);
                 return result ?? Enumerable.Empty<Alarm>();
@@ -76,7 +76,7 @@ namespace API.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync($"api/alarms/{id}");
+                var response = await _sensorInfoHttpClient.GetAsync($"api/alarms/{id}");
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     return null;
                 
@@ -94,7 +94,7 @@ namespace API.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync("api/alarms/events");
+                var response = await _sensorInfoHttpClient.GetAsync("api/alarms/events");
                 response.EnsureSuccessStatusCode();
                 var result = await response.Content.ReadFromJsonAsync<IEnumerable<AlarmEvent>>(_jsonOptions);
                 return result ?? Enumerable.Empty<AlarmEvent>();
@@ -110,7 +110,7 @@ namespace API.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync("api/groups");
+                var response = await _sensorInfoHttpClient.GetAsync("api/groups");
                 response.EnsureSuccessStatusCode();
                 var result = await response.Content.ReadFromJsonAsync<IEnumerable<Group>>(_jsonOptions);
                 return result ?? Enumerable.Empty<Group>();
@@ -126,7 +126,7 @@ namespace API.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync($"api/groups/{id}");
+                var response = await _sensorInfoHttpClient.GetAsync($"api/groups/{id}");
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     return null;
                 

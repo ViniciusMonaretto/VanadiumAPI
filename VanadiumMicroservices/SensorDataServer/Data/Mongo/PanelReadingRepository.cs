@@ -49,17 +49,38 @@ namespace Data.Mongo
 
         public async Task<IEnumerable<PanelReading>> GetPanelReadingsByPanelId(int panelId, DateTime? startDate, DateTime? endDate)
         {
-            return await _collection.Find(x => x.PanelId == panelId && 
-                                        x.ReadingTime >= startDate && 
-                                        x.ReadingTime <= endDate)
-            .ToListAsync();
+            var filterBuilder = Builders<PanelReading>.Filter;
+            var filter = filterBuilder.Eq(x => x.PanelId, panelId);
+
+            if (startDate.HasValue)
+            {
+                filter &= filterBuilder.Gte(x => x.ReadingTime, startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                filter &= filterBuilder.Lte(x => x.ReadingTime, endDate.Value);
+            }
+
+            return await _collection.Find(filter).ToListAsync();
         }
 
         public async Task<Dictionary<int, List<PanelReading>>> GetPanelReadingsByPanelIds(IEnumerable<int> panelIds, DateTime? startDate, DateTime? endDate)
         {
-            var info = await _collection.Find(x => panelIds.Contains(x.PanelId) && 
-                                        x.ReadingTime >= startDate && 
-                                        x.ReadingTime <= endDate).ToListAsync();
+            var filterBuilder = Builders<PanelReading>.Filter;
+            var filter = filterBuilder.In(x => x.PanelId, panelIds);
+
+            if (startDate.HasValue)
+            {
+                filter &= filterBuilder.Gte(x => x.ReadingTime, startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                filter &= filterBuilder.Lte(x => x.ReadingTime, endDate.Value);
+            }
+
+            var info = await _collection.Find(filter).ToListAsync();
 
             return info.GroupBy(x => x.PanelId).ToDictionary(x => x.Key, x => x.ToList());
         }

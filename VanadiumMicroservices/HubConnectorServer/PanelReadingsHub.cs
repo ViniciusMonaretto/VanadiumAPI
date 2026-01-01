@@ -8,11 +8,16 @@ namespace API.Hubs
     public class PanelReadingsHub : Hub
     {
         private readonly ISensorInfoService _sensorInfoService;
+        private readonly IPanelReadingService _panelReadingService;
         private readonly ILogger<PanelReadingsHub> _logger;
 
-        public PanelReadingsHub(ISensorInfoService sensorInfoService, ILogger<PanelReadingsHub> logger)
+        public PanelReadingsHub(
+            ISensorInfoService sensorInfoService, 
+            IPanelReadingService panelReadingService,
+            ILogger<PanelReadingsHub> logger)
         {
             _sensorInfoService = sensorInfoService;
+            _panelReadingService = panelReadingService;
             _logger = logger;
         }
 
@@ -151,6 +156,48 @@ namespace API.Hubs
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching group {GroupId}", id);
+                throw;
+            }
+        }
+
+        // Panel Readings
+        public async Task<IEnumerable<PanelReading>> GetPanelReadings(int panelId, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                var readings = await _panelReadingService.GetPanelReadingsAsync(panelId, startDate, endDate);
+                return readings;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching panel readings for panel {PanelId}", panelId);
+                throw;
+            }
+        }
+
+        public class PanelReadingsRequest
+        {
+            public int[] SensorInfos { get; set; }
+            public DateTime? StartDate { get; set; }
+            public DateTime? EndDate { get; set; }
+        }
+
+        public async Task<Dictionary<int, List<PanelReading>>> GetMultiplePanelReadings(PanelReadingsRequest request)
+        {
+            try
+            {
+                if (request.SensorInfos == null || !request.SensorInfos.Any())
+                {
+                    _logger.LogWarning("GetMultiplePanelReadings called with null or empty sensorInfos");
+                    return new Dictionary<int, List<PanelReading>>();
+                }
+
+                var readings = await _panelReadingService.GetMultiplePanelReadingsAsync(request.SensorInfos, request.StartDate, request.EndDate);
+                return readings;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching multiple panel readings");
                 throw;
             }
         }

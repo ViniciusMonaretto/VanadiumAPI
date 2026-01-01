@@ -26,10 +26,9 @@ namespace API.Controllers
         {
             var readings = await _repository.GetPanelReadingsByPanelId(panelId, startDate, endDate);
 
-            if (readings == null || !readings.Any())
-                return NotFound($"No readings found for panel {panelId}");
-
-            return Ok(readings);
+            // Return empty list instead of 404 when no readings found
+            // 404 should indicate endpoint not found, not empty data
+            return Ok(readings ?? Enumerable.Empty<PanelReading>());
         }
 
         [HttpPost("multiple")]
@@ -44,10 +43,9 @@ namespace API.Controllers
                 request.StartDate,
                 request.EndDate);
 
-            if (readings == null || !readings.Any())
-                return NotFound("No readings found for the specified panels");
-
-            return Ok(readings);
+            // Return empty dictionary instead of 404 when no readings found
+            // 404 should indicate endpoint not found, not empty data
+            return Ok(readings ?? new Dictionary<int, List<PanelReading>>());
         }
     }
     

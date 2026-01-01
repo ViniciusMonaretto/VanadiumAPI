@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Models;
 using Shared.ServicesHelpers;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 // Configure RabbitMQ options
 builder.Services.Configure<RabbitMQOptions>(
@@ -32,17 +32,31 @@ builder.Services.AddSingleton<IMongoClient>(sp =>
 
 builder.Services.AddScoped<MongoDbInitializer>();
 
+// Add controllers
+builder.Services.AddControllers();
+
+// Configure URLs from appsettings.json
+var serverUrl = builder.Configuration.GetSection("Server")["Url"];
+if (!string.IsNullOrEmpty(serverUrl))
+{
+    builder.WebHost.UseUrls(serverUrl);
+}
+
 await WaitForServicesHelper.WaitForSensorInfoAsync(new List<string> {  builder.Configuration.GetSection("SensorInfoServer")["BaseUrl"] }, CancellationToken.None);
 
 var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
 logger.LogInformation("SensorInfoServer is ready");
 
-var host = builder.Build();
+var app = builder.Build();
 
 // Run Mongo initializer
-using (var scope = host.Services.CreateScope())
+using (var scope = app.Services.CreateScope())
 {
     var initializer = scope.ServiceProvider.GetRequiredService<MongoDbInitializer>();
     await initializer.InitializeAsync();
 }
-host.Run();
+
+// Map controllers
+app.MapControllers();
+
+app.Run();
