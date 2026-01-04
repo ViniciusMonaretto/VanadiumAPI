@@ -168,6 +168,7 @@ namespace SensorInfoServer.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error creating panel");
                 return StatusCode(500, new { message = "Error creating panel", error = ex.Message });
             }
         }

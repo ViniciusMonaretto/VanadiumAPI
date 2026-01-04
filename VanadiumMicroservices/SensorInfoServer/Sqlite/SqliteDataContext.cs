@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SensorInfoServer.Services;
 using Shared.Models;
 using System.Text.Json;  // for JSON reading
 
@@ -10,6 +11,7 @@ namespace Data.Sqlite
         public DbSet<Panel> Panels { get; set; }
         public DbSet<Alarm> Alarms { get; set; }
         public DbSet<AlarmEvent> AlarmEvents { get; set; }
+        public DbSet<UserInfo> Users { get; set; }
 
         public SqliteDataContext(DbContextOptions<SqliteDataContext> options) : base(options)
         {
@@ -18,6 +20,7 @@ namespace Data.Sqlite
             {
                 SeedFromJson();
             }
+             SeedDefaultAdmin();
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
@@ -42,6 +45,18 @@ namespace Data.Sqlite
                 .WithMany(m => m.AlarmEvents)
                 .HasForeignKey(u => u.AlarmId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // UserInfo self-referencing relationship for manager hierarchy
+            builder.Entity<UserInfo>()
+                .HasMany(u => u.ManagedUsers)
+                .WithOne()
+                .HasForeignKey(u => u.ManagerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Make Email unique
+            builder.Entity<UserInfo>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
         }
 
         private void SeedFromJson()
@@ -70,6 +85,38 @@ namespace Data.Sqlite
             catch (Exception ex)
             {
                 Console.WriteLine("Error reading config.json: " + ex.Message);
+            }
+        }
+
+        private void SeedDefaultAdmin()
+        {
+            try
+            {
+                // Check if admin user already exists
+                var adminExists = Users.Any(u => u.Email == "admin@admin.com");
+                
+                if (!adminExists)
+                {
+                    var defaultAdmin = new UserInfo
+                    {
+                        Name = "Admin",
+                        Email = "admin@admin.com",
+                        Company = "System",
+                        UserType = UserType.Admin,
+                        PasswordHash = AuthService.HashPassword("Admin"),
+                        ManagerId = null,
+                        MaxGraphs = null,
+                        MaxPanels = null
+                    };
+
+                    Users.Add(defaultAdmin);
+                    SaveChanges();
+                    Console.WriteLine("Default admin user created: admin@admin.com / Admin");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error creating default admin user: " + ex.Message);
             }
         }
     }
