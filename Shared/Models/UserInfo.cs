@@ -23,6 +23,8 @@ namespace Shared.Models
         // User limits (null means unlimited, only for Admin)
         public int? MaxGraphs { get; set; }
         public int? MaxPanels { get; set; }
+
+        public List<UserGroup> UserGroups { get; set; } = new List<UserGroup>();
     }
 }
 

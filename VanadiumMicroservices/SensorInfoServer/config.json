@@ -1,7 +1,8 @@
 {
     "Groups": [
         {
-            "Name": "Câmera 1"
+            "Name": "Câmera 1",
+            "UserGroupId": 1
         }
     ],
     "Panels": [

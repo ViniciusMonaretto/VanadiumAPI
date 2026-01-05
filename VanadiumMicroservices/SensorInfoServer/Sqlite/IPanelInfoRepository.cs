@@ -18,7 +18,5 @@ namespace Data.Sqlite
         Task<Alarm?> GetAlarmById(int id);
         Task<IEnumerable<AlarmEvent>> GetAllAlarmEvents();
         Task<AlarmEvent?> GetAlarmEventById(int id);
-        Task<int> GetGroupCountForUserAsync(int userId);
-        Task<int> GetPanelCountForUserAsync(int userId);
     }
 }

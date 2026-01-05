@@ -12,15 +12,22 @@ namespace Data.Sqlite
         public DbSet<Alarm> Alarms { get; set; }
         public DbSet<AlarmEvent> AlarmEvents { get; set; }
         public DbSet<UserInfo> Users { get; set; }
-
+        public DbSet<UserGroup> UserGroups { get; set; }
         public SqliteDataContext(DbContextOptions<SqliteDataContext> options) : base(options)
         {
-            // If DB is created now for the first time, populate it
-            if (Database.EnsureCreated())
+            // Ensure database exists before any operations
+            Database.EnsureCreated();
+            
+            // Seed default admin user
+            SeedDefaultAdmin();
+            
+            // If DB was just created, populate from config.json
+            // Note: EnsureCreated() returns false if DB already existed
+            // So we check if tables are empty to determine if we should seed
+            if (Groups != null && Panels != null && !Groups.Any() && !Panels.Any())
             {
                 SeedFromJson();
             }
-             SeedDefaultAdmin();
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
@@ -57,6 +64,16 @@ namespace Data.Sqlite
             builder.Entity<UserInfo>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
+
+            builder.Entity<UserGroup>()
+                .HasMany(x => x.Groups)
+                .WithOne()
+                .HasForeignKey(g => g.UserGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<UserGroup>()
+               .HasMany(x => x.Users)
+               .WithMany(x => x.UserGroups);
         }
 
         private void SeedFromJson()
@@ -72,8 +89,21 @@ namespace Data.Sqlite
 
                 // Example: Add groups
                 if (config.Groups != null)
+                {
+                    // Create or get a UserGroup for the groups
+                    var userGroup = new UserGroup();
+                    UserGroups.Add(userGroup);
+                    SaveChanges(); // Save to get the UserGroup ID
+                    
+                    // Set UserGroupId for all groups
+                    foreach (var group in config.Groups)
+                    {
+                        group.UserGroupId = userGroup.Id;
+                    }
+                    
                     Groups.AddRange(config.Groups);
-
+                }
+                    
                 if (config.Panels != null)
                     Panels.AddRange(config.Panels);
 

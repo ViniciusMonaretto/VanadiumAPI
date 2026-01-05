@@ -78,19 +78,5 @@ namespace Data.Sqlite
         {
             return await _context.AlarmEvents.FindAsync(id);
         }
-
-        public async Task<int> GetGroupCountForUserAsync(int userId)
-        {
-            // For now, we'll count all groups since there's no UserId on Group
-            // This can be enhanced later if groups are user-specific
-            return await _context.Groups.CountAsync();
-        }
-
-        public async Task<int> GetPanelCountForUserAsync(int userId)
-        {
-            // For now, we'll count all panels since there's no UserId on Panel
-            // This can be enhanced later if panels are user-specific
-            return await _context.Panels.CountAsync();
-        }
     }
 }
