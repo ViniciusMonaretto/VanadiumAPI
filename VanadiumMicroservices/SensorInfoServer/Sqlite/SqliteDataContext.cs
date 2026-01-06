@@ -74,6 +74,10 @@ namespace Data.Sqlite
             builder.Entity<UserGroup>()
                .HasMany(x => x.Users)
                .WithMany(x => x.UserGroups);
+
+            builder.Entity<UserGroup>()
+                .HasIndex(x => x.Name)
+                .IsUnique();
         }
 
         private void SeedFromJson()
@@ -91,7 +95,7 @@ namespace Data.Sqlite
                 if (config.Groups != null)
                 {
                     // Create or get a UserGroup for the groups
-                    var userGroup = new UserGroup();
+                    var userGroup = new UserGroup { Name = "Default" };
                     UserGroups.Add(userGroup);
                     SaveChanges(); // Save to get the UserGroup ID
                     
@@ -130,7 +134,7 @@ namespace Data.Sqlite
                     var defaultAdmin = new UserInfo
                     {
                         Name = "Admin",
-                        Email = "admin@admin.com",
+                        Email = "admin",
                         Company = "System",
                         UserType = UserType.Admin,
                         PasswordHash = AuthService.HashPassword("Admin"),

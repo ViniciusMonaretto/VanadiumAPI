@@ -9,15 +9,18 @@ namespace API.Hubs
     {
         private readonly ISensorInfoService _sensorInfoService;
         private readonly IPanelReadingService _panelReadingService;
+        private readonly IAuthService _authService;
         private readonly ILogger<PanelReadingsHub> _logger;
 
         public PanelReadingsHub(
             ISensorInfoService sensorInfoService, 
             IPanelReadingService panelReadingService,
+            IAuthService authService,
             ILogger<PanelReadingsHub> logger)
         {
             _sensorInfoService = sensorInfoService;
             _panelReadingService = panelReadingService;
+            _authService = authService;
             _logger = logger;
         }
 
@@ -46,6 +49,34 @@ namespace API.Hubs
             await base.OnDisconnectedAsync(exception);
         }
 
+        // Authentication
+        public async Task<AuthDto?> Login(LoginDto loginDto)
+        {
+            try
+            {
+                if (loginDto == null || string.IsNullOrEmpty(loginDto.Email) || string.IsNullOrEmpty(loginDto.Password))
+                {
+                    _logger.LogWarning("Authentication attempt with null or empty credentials");
+                    return null;
+                }
+
+                var result = await _authService.LoginAsync(loginDto);
+                
+                if (result == null)
+                {
+                    _logger.LogWarning("Authentication failed for email: {Email}", loginDto.Email);
+                    return null;
+                }
+
+                _logger.LogInformation("Authentication successful for email: {Email}", loginDto.Email);
+                return new AuthDto(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during authentication for email: {Email}", loginDto?.Email);
+                throw;
+            }
+        }
 
         // Panels
         public async Task<IEnumerable<PanelDto>> GetAllPanels()
@@ -177,7 +208,7 @@ namespace API.Hubs
 
         public class PanelReadingsRequest
         {
-            public int[] SensorInfos { get; set; }
+            public int[] SensorInfos { get; set; } = Array.Empty<int>();
             public DateTime? StartDate { get; set; }
             public DateTime? EndDate { get; set; }
         }

@@ -42,6 +42,13 @@ builder.Services.AddHttpClient<ISensorInfoService, SensorInfoService>(client =>
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
+// Configure AuthService HTTP client (uses same SensorInfoServer)
+builder.Services.AddHttpClient<IAuthService, AuthService>(client =>
+{
+    client.BaseAddress = new Uri(sensorInfoServerUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
 // Configure SensorDataServer HTTP client
 var sensorDataServerUrl = builder.Configuration["SensorDataServer:BaseUrl"] ?? "http://localhost:5001";
 builder.Services.AddHttpClient<IPanelReadingService, PanelReadingService>(client =>
