@@ -17,6 +17,7 @@ builder.Services.AddSwaggerGen();
 // Add SignalR service
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<RabbitMQConsumerService>();
+builder.Services.AddSingleton<IPanelBroadcastService, PanelBroadcastService>();
 
 // Add CORS if Angular runs on different port
 builder.Services.AddCors(options =>

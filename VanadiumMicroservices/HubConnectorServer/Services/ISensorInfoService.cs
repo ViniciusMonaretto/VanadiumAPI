@@ -9,7 +9,7 @@ namespace API.Services
         Task<IEnumerable<Alarm>> GetAllAlarmsAsync();
         Task<Alarm?> GetAlarmByIdAsync(int id);
         Task<IEnumerable<AlarmEvent>> GetAllAlarmEventsAsync();
-        Task<IEnumerable<Group>> GetAllGroupsAsync();
+        Task<IEnumerable<Group>> GetAllGroupsAsync(int? enterpriseId);
         Task<Group?> GetGroupByIdAsync(int id);
     }
 }

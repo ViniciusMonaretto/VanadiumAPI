@@ -2,7 +2,7 @@
     "Groups": [
         {
             "Name": "Câmera 1",
-            "UserGroupId": 1
+            "EnterpriseId": 1
         }
     ],
     "Panels": [
@@ -224,5 +224,21 @@
             "Type": 0
         }
     ],
-    "Alarms": []
+    "Alarms": [],
+    "Enterprises": [
+        {
+            "Name": "Enterprise 1",
+            "ManagerId": 2,
+            "MaxUsers": 10,
+            "MaxPanels": 100
+        }
+    ],
+    "Users": [
+        {
+            "Name": "user",
+            "Email": "user@example.com",
+            "Password": "user",
+            "UserType": 1
+        }
+    ]
 }

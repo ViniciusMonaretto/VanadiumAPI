@@ -8,13 +8,14 @@ using API.Hubs;
 using Shared.Models;
 using System.Text.Json;
 using System.Text;
+using API.Services;
 
 namespace HubConnectorServer
 {
     public class RabbitMQConsumerService : BackgroundService
     {
         private readonly ILogger<RabbitMQConsumerService> _logger;
-        private readonly IHubContext<PanelReadingsHub> _hubContext;
+        private readonly IPanelBroadcastService _broadcastService;
         private readonly IConnection _rabbitMqConnection;
         private readonly IModel _rabbitMqChannel;
         private readonly string _queueName;
@@ -22,10 +23,10 @@ namespace HubConnectorServer
         public RabbitMQConsumerService(
             IOptions<RabbitMQOptions> rabbitMqOptions,
             ILogger<RabbitMQConsumerService> logger,
-            IHubContext<PanelReadingsHub> hubContext)
+            IPanelBroadcastService panelBroadcastService)
         {
             _logger = logger;
-            _hubContext = hubContext;
+            _broadcastService = panelBroadcastService;
 
             var rabbitMq = rabbitMqOptions.Value;
             _queueName = rabbitMq.QueueName ?? "signalr-consumer";
@@ -184,7 +185,7 @@ private async Task<bool> ProcessSensorDataAsync(string messageText, Cancellation
         return false;
     }
 
-    await _hubContext.Clients.All.SendAsync("SensorDataReceived", sensorData, stoppingToken);
+    await _broadcastService.BroadcastSensorData(sensorData);
     return true;
 }
 
@@ -197,7 +198,7 @@ private async Task<bool> ProcessPanelChangeAsync(string messageText, Cancellatio
         return false;
     }
 
-    await _hubContext.Clients.All.SendAsync("PanelChangeReceived", panelChange, stoppingToken);
+    await _broadcastService.BroadcastPanelChange(panelChange);
     return true;
 }
 

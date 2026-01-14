@@ -8,7 +8,7 @@ using System.Linq.Expressions;
 
 namespace Data.Sqlite
 {
-    public class PanelInfoRepository : IPanelInfoRepository	
+    public class PanelInfoRepository : IPanelInfoRepository
     {
         private readonly SqliteDataContext _context;
         public PanelInfoRepository(SqliteDataContext context)
@@ -77,6 +77,16 @@ namespace Data.Sqlite
         public async Task<AlarmEvent?> GetAlarmEventById(int id)
         {
             return await _context.AlarmEvents.FindAsync(id);
+        }
+        
+        public async Task<IEnumerable<Group>> GetEnterpriseGroups(int enterpriseId)
+        {
+            return await _context.Groups
+                .Include(g => g.Panels)
+                .ThenInclude(p => p.Alarms)
+                .ThenInclude(a => a.AlarmEvents)
+                .Where(g => g.EnterpriseId == enterpriseId)
+                .ToListAsync();
         }
     }
 }

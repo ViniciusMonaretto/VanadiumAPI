@@ -14,9 +14,5 @@ namespace HubConnectorServer.DTO
             Name = group.Name;
             Panels = group.Panels.Select(p => new PanelDto(p)).ToList();
         }
-
-        public GroupDto()
-        {
-        }
     }
 }

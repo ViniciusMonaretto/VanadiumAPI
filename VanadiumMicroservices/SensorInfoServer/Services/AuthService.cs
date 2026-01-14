@@ -49,7 +49,8 @@ namespace SensorInfoServer.Services
                 Email = user.Email,
                 Name = user.Name,
                 UserType = user.UserType,
-                ManagerId = user.ManagerId
+                ManagerId = user.ManagerId,
+                Enterprises = user.ManagedEnterprises.Concat(user.UserEnterprises).GroupBy(e => e.Id).Select(g => g.First()).ToList()
             };
         }
 
@@ -81,6 +82,8 @@ namespace SensorInfoServer.Services
         public async Task<UserInfo?> GetUserByEmailAsync(string email)
         {
             return await _context.Users
+                .Include(u => u.ManagedEnterprises)
+                .Include(u => u.UserEnterprises)
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
 
@@ -88,6 +91,8 @@ namespace SensorInfoServer.Services
         {
             return await _context.Users
                 .Include(u => u.ManagedUsers)
+                .Include(u => u.ManagedEnterprises)
+                .Include(u => u.UserEnterprises)
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
 

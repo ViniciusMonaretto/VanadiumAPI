@@ -10,6 +10,7 @@ namespace HubConnectorServer.DTO
         public string Name { get; set; } = string.Empty;
         public UserType UserType { get; set; }
         public int? ManagerId { get; set; }
+        public List<Enterprise> Enterprises { get; set; } = new List<Enterprise>();
     }
 }
 

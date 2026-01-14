@@ -1,3 +1,5 @@
+using Shared.Models;
+
 namespace SensorInfoServer.DTOs
 {
     public class AuthResponseDto
@@ -8,6 +10,7 @@ namespace SensorInfoServer.DTOs
         public string Name { get; set; } = string.Empty;
         public Shared.Models.UserType UserType { get; set; }
         public int? ManagerId { get; set; }
+        public List<Enterprise> Enterprises { get; set; } = new List<Enterprise>();
     }
 }
 

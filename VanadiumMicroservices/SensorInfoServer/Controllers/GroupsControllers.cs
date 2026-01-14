@@ -49,6 +49,25 @@ namespace SensorInfoServer.Controllers
             }
         }
 
+        // GET: api/groups/enterprise/5
+        [HttpGet("enterprise/{id}")]
+        public async Task<ActionResult<Group>> GetEnterpriseGroups(int id)
+        {
+            try
+            {
+                var group = await _repository.GetEnterpriseGroups(id);
+                
+                if (group == null)
+                    return NotFound(new { message = $"Group with id {id} not found" });
+
+                return Ok(group);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving group", error = ex.Message });
+            }
+        }
+
         // POST: api/groups
         [HttpPost]
         public async Task<ActionResult<Group>> CreateGroup([FromBody] Group group)

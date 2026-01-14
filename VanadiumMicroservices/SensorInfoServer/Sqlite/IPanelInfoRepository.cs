@@ -14,6 +14,7 @@ namespace Data.Sqlite
         Task<Panel?> GetPanelById(int id);
         Task<IEnumerable<Group>> GetAllGroups();
         Task<Group?> GetGroupById(int id);
+        Task<IEnumerable<Group>> GetEnterpriseGroups(int enterpriseId);
         Task<IEnumerable<Alarm>> GetAllAlarms();
         Task<Alarm?> GetAlarmById(int id);
         Task<IEnumerable<AlarmEvent>> GetAllAlarmEvents();

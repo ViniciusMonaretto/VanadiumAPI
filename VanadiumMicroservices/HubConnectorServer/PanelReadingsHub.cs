@@ -10,17 +10,20 @@ namespace API.Hubs
         private readonly ISensorInfoService _sensorInfoService;
         private readonly IPanelReadingService _panelReadingService;
         private readonly IAuthService _authService;
+        private readonly IPanelBroadcastService _broadcastService;
         private readonly ILogger<PanelReadingsHub> _logger;
 
         public PanelReadingsHub(
             ISensorInfoService sensorInfoService, 
             IPanelReadingService panelReadingService,
             IAuthService authService,
+            IPanelBroadcastService broadcastService,
             ILogger<PanelReadingsHub> logger)
         {
             _sensorInfoService = sensorInfoService;
             _panelReadingService = panelReadingService;
             _authService = authService;
+            _broadcastService = broadcastService;
             _logger = logger;
         }
 
@@ -28,18 +31,6 @@ namespace API.Hubs
         public override async Task OnConnectedAsync()
         {
             await Clients.Caller.SendAsync("Connected", Context.ConnectionId);
-            
-            // Automatically send all groups info to newly connected client
-            try
-            {
-                var groups = await GetAllGroups();
-                await Clients.Caller.SendAsync("updateGroupsInfo", groups);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching all groups on connection");
-                // Don't fail the connection if groups fetch fails
-            }
             
             await base.OnConnectedAsync();
         }
@@ -163,11 +154,11 @@ namespace API.Hubs
         }
 
         // Groups
-        public async Task<Dictionary<string, GroupDto>> GetAllGroups()
+        public async Task<Dictionary<string, GroupDto>> GetAllGroups(int enterpriseId)
         {
             try
             {
-                var groups = await _sensorInfoService.GetAllGroupsAsync();
+                var groups = await _sensorInfoService.GetAllGroupsAsync(enterpriseId);
                 return groups.ToDictionary(g => g.Id.ToString(), g => new GroupDto(g));
             }
             catch (Exception ex)

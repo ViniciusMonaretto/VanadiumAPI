@@ -1,3 +1,5 @@
+using Shared.Models;
+
 namespace HubConnectorServer.DTO
 {
     public class AuthDto
@@ -8,6 +10,7 @@ namespace HubConnectorServer.DTO
         public string Name { get; set; } = string.Empty;
         public Shared.Models.UserType UserType { get; set; }
         public int? ManagerId { get; set; }
+        public List<EnterpriseDto> Enterprises { get; set; } = new List<EnterpriseDto>();
 
         public AuthDto(AuthResponseDto authResponse)
         {
@@ -17,6 +20,7 @@ namespace HubConnectorServer.DTO
             Name = authResponse.Name;
             UserType = authResponse.UserType;
             ManagerId = authResponse.ManagerId;
+            Enterprises = authResponse.Enterprises.Select(e => new EnterpriseDto(e)).ToList();
         }
 
         public AuthDto()

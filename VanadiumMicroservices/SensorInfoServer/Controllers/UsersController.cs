@@ -63,9 +63,7 @@ namespace SensorInfoServer.Controllers
                     Company = createUserDto.Company,
                     PasswordHash = AuthService.HashPassword(createUserDto.Password),
                     UserType = createUserDto.UserType,
-                    ManagerId = createUserDto.ManagerId,
-                    MaxGraphs = createUserDto.UserType == UserType.Admin ? null : createUserDto.MaxGraphs,
-                    MaxPanels = createUserDto.UserType == UserType.Admin ? null : createUserDto.MaxPanels
+                    ManagerId = createUserDto.ManagerId
                 };
 
                 _context.Users.Add(newUser);

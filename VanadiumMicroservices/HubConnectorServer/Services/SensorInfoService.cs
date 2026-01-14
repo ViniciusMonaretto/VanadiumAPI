@@ -106,11 +106,13 @@ namespace API.Services
             }
         }
 
-        public async Task<IEnumerable<Group>> GetAllGroupsAsync()
+        public async Task<IEnumerable<Group>> GetAllGroupsAsync(int? enterpriseId)
         {
             try
             {
-                var response = await _sensorInfoHttpClient.GetAsync("api/groups");
+                var response = enterpriseId.HasValue ?
+                    await _sensorInfoHttpClient.GetAsync($"api/groups/enterprise/{enterpriseId.Value}") :
+                    await _sensorInfoHttpClient.GetAsync("api/groups");
                 response.EnsureSuccessStatusCode();
                 var result = await response.Content.ReadFromJsonAsync<IEnumerable<Group>>(_jsonOptions);
                 return result ?? Enumerable.Empty<Group>();
