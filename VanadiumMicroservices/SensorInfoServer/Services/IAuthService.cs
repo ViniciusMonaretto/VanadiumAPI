@@ -9,6 +9,7 @@ namespace SensorInfoServer.Services
         string GenerateJwtToken(UserInfo user);
         Task<UserInfo?> GetUserByEmailAsync(string email);
         Task<UserInfo?> GetUserByIdAsync(int id);
+        bool ValidateToken(string token);
     }
 }
 
