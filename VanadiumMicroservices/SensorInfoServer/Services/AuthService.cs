@@ -42,6 +42,22 @@ namespace SensorInfoServer.Services
 
             var token = GenerateJwtToken(user);
 
+            List<Enterprise> enterprises;
+            if (user.UserType == UserType.Admin)
+            {
+                // Admin users get all enterprises
+                enterprises = await _context.Enterprises.ToListAsync();
+            }
+            else
+            {
+                // Non-admin users get their managed and user enterprises
+                enterprises = user.ManagedEnterprises
+                    .Concat(user.UserEnterprises)
+                    .GroupBy(e => e.Id)
+                    .Select(g => g.First())
+                    .ToList();
+            }
+
             return new AuthResponseDto
             {
                 Token = token,
@@ -50,7 +66,7 @@ namespace SensorInfoServer.Services
                 Name = user.Name,
                 UserType = user.UserType,
                 ManagerId = user.ManagerId,
-                Enterprises = user.ManagedEnterprises.Concat(user.UserEnterprises).GroupBy(e => e.Id).Select(g => g.First()).ToList()
+                Enterprises = enterprises
             };
         }
 

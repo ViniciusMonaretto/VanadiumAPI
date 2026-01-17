@@ -192,7 +192,7 @@ namespace Data.Sqlite
                         Email = "admin",
                         Company = "System",
                         UserType = UserType.Admin,
-                        PasswordHash = AuthService.HashPassword("Admin"),
+                        PasswordHash = AuthService.HashPassword("admin"),
                         ManagerId = null
                     };
 
