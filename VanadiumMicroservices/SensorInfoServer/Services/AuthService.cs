@@ -26,17 +26,21 @@ namespace SensorInfoServer.Services
 
         public async Task<AuthResponseDto?> LoginAsync(LoginDto loginDto)
         {
-            var user = await GetUserByEmailAsync(loginDto.Email);
+            var user = await GetUserByEmailAsync(loginDto.Username);
             
             if (user == null)
             {
-                _logger.LogWarning("Login attempt with non-existent email: {Email}", loginDto.Email);
-                return null;
+                user = await GetUserByUsernameAsync(loginDto.Username);
+                if (user == null)
+                {
+                    _logger.LogWarning("Login attempt with non-existent username: {Username}", loginDto.Username);
+                    return null;
+                }
             }
 
             if (!VerifyPassword(loginDto.Password, user.PasswordHash))
             {
-                _logger.LogWarning("Invalid password attempt for user: {Email}", loginDto.Email);
+                _logger.LogWarning("Invalid password attempt for user: {Email}", loginDto.Username);
                 return null;
             }
 
@@ -101,6 +105,14 @@ namespace SensorInfoServer.Services
                 .Include(u => u.ManagedEnterprises)
                 .Include(u => u.UserEnterprises)
                 .FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<UserInfo?> GetUserByUsernameAsync(string username)
+        {
+            return await _context.Users
+                .Include(u => u.ManagedEnterprises)
+                .Include(u => u.UserEnterprises)
+                .FirstOrDefaultAsync(u => u.UserName == username);
         }
 
         public async Task<UserInfo?> GetUserByIdAsync(int id)

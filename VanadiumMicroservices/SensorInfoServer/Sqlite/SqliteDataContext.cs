@@ -68,6 +68,11 @@ namespace Data.Sqlite
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
+            // username unique
+            builder.Entity<UserInfo>()
+                .HasIndex(u => u.UserName)
+                .IsUnique();
+
             builder.Entity<Enterprise>()
                 .HasMany(x => x.Groups)
                 .WithOne()
@@ -111,6 +116,7 @@ namespace Data.Sqlite
                         {
                             Name = seedUser.Name,
                             Email = seedUser.Email,
+                            UserName = seedUser.UserName,
                             Company = seedUser.Company,
                             UserType = seedUser.UserType,
                             PasswordHash = string.IsNullOrEmpty(seedUser.Password)
@@ -189,7 +195,8 @@ namespace Data.Sqlite
                     var defaultAdmin = new UserInfo
                     {
                         Name = "Admin",
-                        Email = "admin",
+                        Email = "admin@admin.com",
+                        UserName = "admin",
                         Company = "System",
                         UserType = UserType.Admin,
                         PasswordHash = AuthService.HashPassword("admin"),
@@ -223,6 +230,7 @@ namespace Data.Sqlite
     {
         public required string Name { get; set; }
         public required string Email { get; set; }
+        public required string UserName { get; set; }
         public string? Company { get; set; }
         public UserType UserType { get; set; }
         public string? Password { get; set; }

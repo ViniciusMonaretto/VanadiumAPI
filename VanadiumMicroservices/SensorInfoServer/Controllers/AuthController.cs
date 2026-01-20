@@ -28,9 +28,9 @@ namespace SensorInfoServer.Controllers
         {
             try
             {
-                if (loginDto == null || string.IsNullOrEmpty(loginDto.Email) || string.IsNullOrEmpty(loginDto.Password))
+                if (loginDto == null || string.IsNullOrEmpty(loginDto.Username) || string.IsNullOrEmpty(loginDto.Password))
                 {
-                    return BadRequest(new { message = "Email and password are required" });
+                    return BadRequest(new { message = "Username and password are required" });
                 }
 
                 var result = await _authService.LoginAsync(loginDto);

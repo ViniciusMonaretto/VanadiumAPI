@@ -8,7 +8,7 @@
     "Panels": [
         {
             "Name": "Armazem A",
-            "GatewayId": "1C69209DFC08",
+            "GatewayId": "1C69209DFC01",
             "GroupId": 1,
             "Index": "0",
             "Color": "red",
@@ -19,7 +19,7 @@
         },
         {
             "Name": "Frigorifico B",
-            "GatewayId": "1C69209DFC09",
+            "GatewayId": "1C69209DFC02",
             "GroupId": 1,
             "Index": "0",
             "Color": "green",
@@ -30,7 +30,7 @@
         },
         {
             "Name": "Frigorifico C",
-            "GatewayId": "1C69209DFC10",
+            "GatewayId": "1C69209DFC03",
             "GroupId": 1,
             "Index": "0",
             "Color": "blue",
@@ -52,7 +52,8 @@
     "Users": [
         {
             "Name": "user",
-            "Email": "user",
+            "Email": "user@user.com",
+            "UserName": "user",
             "Password": "user",
             "UserType": 1
         }

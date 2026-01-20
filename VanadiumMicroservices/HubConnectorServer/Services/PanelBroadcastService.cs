@@ -10,7 +10,7 @@ namespace API.Services
         private readonly IHubContext<PanelReadingsHub> _hubContext;
         private readonly ILogger<PanelBroadcastService> _logger;
         // ConnectionId -> Set of GatewayIds
-        private readonly ConcurrentDictionary<string, HashSet<string>> _connectionGatewayIds = new();
+        private readonly ConcurrentDictionary<string, HashSet<string>> _subscribedConnectionsToGatewayIds = new();
 
         // ConnectionId -> UserId (for tracking which user owns the connection)
         private readonly ConcurrentDictionary<string, int> _connectionUsers = new();
@@ -31,14 +31,14 @@ namespace API.Services
             // Track the user for this connection
             _connectionUsers.TryAdd(connectionId, userId);
 
-            // Add panel to connection's subscriptions
-            _connectionGatewayIds.AddOrUpdate(
-                connectionId,
-                new HashSet<string> { gatewayId },
-                (_, panels) =>
+            // Add gateway id to connection's subscriptions
+            _subscribedConnectionsToGatewayIds.AddOrUpdate(
+                gatewayId,
+                new HashSet<string> { connectionId },
+                (_, connections) =>
                 {
-                    panels.Add(gatewayId);
-                    return panels;
+                    connections.Add(connectionId);
+                    return connections;
                 });
 
             // Add connection to panel's subscribers
@@ -59,9 +59,14 @@ namespace API.Services
         public void UnsubscribeFromPanel(string connectionId, int panelId, string gatewayId)
         {
             // Remove panel from connection's subscriptions
-            if (_connectionGatewayIds.TryGetValue(connectionId, out var gatewayIds))
+            if (_subscribedConnectionsToGatewayIds.TryGetValue(gatewayId, out var connectionIds))
             {
-                gatewayIds.Remove(gatewayId);
+                connectionIds.Remove(connectionId);
+
+                if (connectionIds.Count == 0)
+                {
+                    _subscribedConnectionsToGatewayIds.TryRemove(gatewayId, out _);
+                }
             }
 
             // Remove connection from panel's subscribers
@@ -100,7 +105,7 @@ namespace API.Services
         public async Task BroadcastSensorData(SensorDataMessageModel sensorData)
         {
             // Get all connections subscribed to this panel
-            if (_connectionGatewayIds.TryGetValue(sensorData.GatewayId, out var connections) && connections.Any())
+            if (_subscribedConnectionsToGatewayIds.TryGetValue(sensorData.GatewayId, out var connections) && connections.Any())
             {
 
                 await _hubContext.Clients
@@ -125,20 +130,29 @@ namespace API.Services
 
         public void RemoveConnection(string connectionId)
         {
-            // Get all panels this connection was subscribed to
-            if (_connectionGatewayIds.TryRemove(connectionId, out var panels))
-            {
-                _panelConnections.Where(kvp => kvp.Value.Contains(connectionId))
-                    .ToList()
-                    .ForEach(kvp =>
+            _subscribedConnectionsToGatewayIds.Where(kvp => kvp.Value.Contains(connectionId))
+                .ToList()
+                .ForEach(kvp =>
+                {
+                    kvp.Value.Remove(connectionId);
+                    if (kvp.Value.Count == 0)
                     {
-                        kvp.Value.Remove(connectionId);
-                        if (kvp.Value.Count == 0)
-                        {
-                            _panelConnections.TryRemove(kvp.Key, out _);
-                        }
-                    });
-            }
+                        _subscribedConnectionsToGatewayIds.TryRemove(kvp.Key, out _);
+                    }
+                });
+
+
+            _panelConnections.Where(kvp => kvp.Value.Contains(connectionId))
+                .ToList()
+                .ForEach(kvp =>
+                {
+                    kvp.Value.Remove(connectionId);
+                    if (kvp.Value.Count == 0)
+                    {
+                        _panelConnections.TryRemove(kvp.Key, out _);
+                    }
+                });
+
 
             var userId = _connectionUsers.TryGetValue(connectionId, out var uid) ? uid : -1;
             _connectionUsers.TryRemove(connectionId, out _);
@@ -153,14 +167,13 @@ namespace API.Services
         {
             return new Dictionary<string, object>
             {
-                ["TotalConnections"] = _connectionGatewayIds.Count,
+                ["TotalSubscribedConnectionsToGatewayIds"] = _subscribedConnectionsToGatewayIds.Count,
                 ["TotalPanelsWithSubscribers"] = _panelConnections.Count,
-                ["ConnectionDetails"] = _connectionGatewayIds.Select(kvp => new
+                ["ConnectionDetails"] = _subscribedConnectionsToGatewayIds.Select(kvp => new
                 {
-                    ConnectionId = kvp.Key,
+                    GatewayId = kvp.Key,
                     UserId = _connectionUsers.TryGetValue(kvp.Key, out var uid) ? uid : -1,
-                    PanelCount = kvp.Value.Count,
-                    Panels = kvp.Value.ToList()
+                    ConnectionsIds = kvp.Value.ToList()
                 }).ToList()
             };
         }

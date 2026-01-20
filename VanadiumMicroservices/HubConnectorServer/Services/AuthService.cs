@@ -30,7 +30,7 @@ namespace API.Services
                 
                 if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    _logger.LogWarning("Unauthorized login attempt for email: {Email}", loginDto.Email);
+                    _logger.LogWarning("Unauthorized login attempt for email: {Email}", loginDto.Username);
                     return null;
                 }
 
@@ -47,6 +47,34 @@ namespace API.Services
             {
                 _logger.LogError(ex, "Error during login to SensorInfoServer");
                 throw;
+            }
+        }
+
+        public async Task<bool> ValidateTokenAsync(string token)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    return false;
+                }
+
+                var validateDto = new { Token = token };
+                var response = await _sensorInfoHttpClient.PostAsJsonAsync("api/auth/validate", validateDto, _jsonOptions);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Token validation failed with status code: {StatusCode}", response.StatusCode);
+                    return false;
+                }
+
+                var result = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>(_jsonOptions);
+                return result != null && result.ContainsKey("valid") && result["valid"]?.ToString()?.ToLower() == "true";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during token validation to SensorInfoServer");
+                return false;
             }
         }
     }

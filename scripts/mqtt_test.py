@@ -11,32 +11,9 @@ MESSAGES_TO_SEND = 1
 
 # Base sensor values
 base_sensors = [
-    {"value": -41.5, "active": True, "unit": "°C"},
-    {"value": -30, "active": True, "unit": "°C"},
-    {"value": -18.41, "active": True, "unit": "°C"},
-    {"value": -10.97, "active": True, "unit": "°C"},
-    {"value": -0.67, "active": True, "unit": "°C"},
-    {"value": 7.33, "active": True, "unit": "°C"},
-    {"value": 20.88, "active": True, "unit": "°C"},
-    {"value": 25.1, "active": True, "unit": "°C"},
-    {"value": 28.18, "active": True, "unit": "°C"},
-    {"value": 39.2, "active": True, "unit": "°C"},
-    {"value": 48.3, "active": True, "unit": "°C"},
-    {"value": 62.77, "active": True, "unit": "°C"},
-    {"value": 68.89, "active": True, "unit": "°C"},
-    {"value": 80.62, "active": True, "unit": "°C"},
-    {"value": 92.21, "active": True, "unit": "°C"},
-    {"value": 98.12, "active": True, "unit": "°C"},
-    {"value": 111.21, "active": True, "unit": "°C"},
-    {"value": 124.4, "active": True, "unit": "°C"},
-    {"value": 132.87, "active": True, "unit": "°C"},
-    {"value": 140.7, "active": True, "unit": "°C"},
-    {"value": 20, "active": True, "unit": "kPa"},
-    {"value": 20, "active": True, "unit": "kPa"},
-    {"value": 221, "active": True, "unit": "V"},
-    {"value": 2, "active": True, "unit": "A"},
-    {"value": 1000, "active": True, "unit": "W"},
-    {"value": 0.96, "active": True, "unit": "%"}
+    {"value": 1, "active": True, "unit": "L/s"},
+    {"value": 1.23, "active": True, "unit": "L/s"},
+    {"value": 2, "active": True, "unit": "L/s"}
 ]
 
 # Callback for successful connection
@@ -59,24 +36,25 @@ def send_gateway_status(mqtt_client, response_topic):
         panel = {
             "gain": 1,
             "offset": 0,
-            "index": counter,
+            "index": 0,
             "state": 0,
             "unit": sensor_data["unit"]
         }
         panels.append(panel)
+
+        status_payload = {
+            "command_index": 2,
+            "command_status": 0,
+            "device_id": "1C69209DFC0" + str(1 + counter),
+            "ip_address": "192.168.3.79",
+            "uptime": 19510,
+            "sensors": panels
+        }
+
         counter += 1
 
-    status_payload = {
-        "command_index": 2,
-        "command_status": 0,
-        "device_id": "1C69209DFC08",
-        "ip_address": "192.168.3.79",
-        "uptime": 19510,
-        "sensors": panels
-    }
-
-    status_topic = response_topic
-    mqtt_client.publish(status_topic, json.dumps(status_payload))
+        status_topic = response_topic
+        mqtt_client.publish(status_topic, json.dumps(status_payload))
     print(f"Sent status message to {status_topic}")
 
 
@@ -147,22 +125,18 @@ try:
         sensors = []
         count = 0
         for sensor in base_sensors:
+            varied_value = round(
+                sensor["value"] + random.uniform(-0.2, 0.2), 2)
+            payload = {
+                "timestamp": datetime.now().timestamp(),
+                "sensors": [{"active": True, "value": varied_value}],
+            }
+            topic = f"iocloud/response/1C69209DFC0{1 + count}/sensor/report"
+            payload_json = json.dumps(payload)
+            print(f"Sending MQTT message to {topic}")
+            client.publish(topic, payload_json)
+            print("Sent MQTT message")
             count += 1
-            if sensor["unit"] == "°C" and count != 2:
-                varied_value = round(
-                    sensor["value"] + random.uniform(-5, 5), 2)
-                sensors.append({"active": True, "value": varied_value})
-            else:
-                sensors.append({"active": True, "value": sensor["value"]})
-        payload = {
-            "timestamp": datetime.now().timestamp(),
-            "sensors": sensors,
-        }
-        topic = "iocloud/response/1C69209DFC08/sensor/report"
-        payload_json = json.dumps(payload)
-        print(f"Sending MQTT message to {topic}")
-        client.publish(topic, payload_json)
-        print("Sent MQTT message")
         time.sleep(10)
 except KeyboardInterrupt:
     print("Stopping the client.")
