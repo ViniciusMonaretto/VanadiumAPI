@@ -405,6 +405,11 @@ namespace SensorInfoServer.Controllers
                     return Conflict(new { message = "User is already in this enterprise" });
                 }
 
+                if (enterprise.MaxUsers.HasValue && enterprise.Users.Count >= enterprise.MaxUsers.Value)
+                {
+                    return BadRequest(new { message = "Enterprise has reached its maximum number of users (MaxUsers)" });
+                }
+
                 enterprise.Users.Add(user);
                 await _context.SaveChangesAsync();
                 return NoContent();

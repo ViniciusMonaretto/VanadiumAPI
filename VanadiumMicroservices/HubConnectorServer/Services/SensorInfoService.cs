@@ -24,6 +24,17 @@ namespace API.Services
             };
         }
 
+        private static bool IsFailureResponse(HttpResponseMessage response, params System.Net.HttpStatusCode[] orStatuses)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound ||
+                response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                return true;
+            foreach (var code in orStatuses)
+                if (response.StatusCode == code)
+                    return true;
+            return false;
+        }
+
         public async Task<IEnumerable<Panel>> GetAllPanelsAsync()
         {
             try
@@ -190,9 +201,7 @@ namespace API.Services
                 using var request = new HttpRequestMessage(HttpMethod.Delete, $"api/users/managed/{userId}");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 var response = await _sensorInfoHttpClient.SendAsync(request);
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    return false;
-                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                if (IsFailureResponse(response))
                     return false;
                 response.EnsureSuccessStatusCode();
                 return true;
@@ -211,9 +220,7 @@ namespace API.Services
                 using var request = new HttpRequestMessage(HttpMethod.Get, $"api/users/{userId}/enterprises");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 var response = await _sensorInfoHttpClient.SendAsync(request);
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    return Enumerable.Empty<Enterprise>();
-                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                if (IsFailureResponse(response))
                     return Enumerable.Empty<Enterprise>();
                 response.EnsureSuccessStatusCode();
                 var result = await response.Content.ReadFromJsonAsync<IEnumerable<Enterprise>>(_jsonOptions);
@@ -233,12 +240,13 @@ namespace API.Services
                 using var request = new HttpRequestMessage(HttpMethod.Post, $"api/users/{userId}/enterprises/{enterpriseId}");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 var response = await _sensorInfoHttpClient.SendAsync(request);
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                if (IsFailureResponse(response, System.Net.HttpStatusCode.Conflict))
                     return false;
-                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                    return false;
-                if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
-                    return false;
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    throw new InvalidOperationException(
+                        "A empresa atingiu o número máximo de usuários permitido (MaxUsers).");
+                }
                 response.EnsureSuccessStatusCode();
                 return true;
             }
@@ -256,9 +264,7 @@ namespace API.Services
                 using var request = new HttpRequestMessage(HttpMethod.Delete, $"api/users/{userId}/enterprises/{enterpriseId}");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 var response = await _sensorInfoHttpClient.SendAsync(request);
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    return false;
-                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                if (IsFailureResponse(response))
                     return false;
                 response.EnsureSuccessStatusCode();
                 return true;

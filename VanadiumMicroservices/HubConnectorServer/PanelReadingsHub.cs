@@ -85,7 +85,7 @@ namespace API.Hubs
             if (string.IsNullOrWhiteSpace(token))
             {
                 _logger.LogWarning("Empty or null token provided from connection {ConnectionId}", Context.ConnectionId);
-                await Clients.Caller.SendAsync("Error", "Authentication required");
+                await Clients.Caller.SendAsync("Error", "Autenticação necessária");
                 return (false, 0, UserType.User);
             }
 
@@ -93,7 +93,7 @@ namespace API.Hubs
             if (!isValid)
             {
                 _logger.LogWarning("Invalid or expired token for connection {ConnectionId}", Context.ConnectionId);
-                await Clients.Caller.SendAsync("Error", "Invalid or expired token");
+                await Clients.Caller.SendAsync("Error", "Token inválido ou expirado");
                 return (false, 0, UserType.User);
             }
 
@@ -367,7 +367,7 @@ namespace API.Hubs
             if (userType != UserType.Admin && userType != UserType.Manager)
             {
                 _logger.LogWarning("AddManagedUser called by user without manager or admin role");
-                await Clients.Caller.SendAsync("Error", "Only managers or admins can add managed users");
+                await Clients.Caller.SendAsync("Error", "Apenas gerentes ou administradores podem adicionar usuários gerenciados");
                 return null;
             }
 
@@ -435,7 +435,7 @@ namespace API.Hubs
             if (userType != UserType.Admin && userType != UserType.Manager)
             {
                 _logger.LogWarning("AddUserToEnterprise called by user without manager or admin role");
-                await Clients.Caller.SendAsync("Error", "Only managers or admins can add a user to an enterprise");
+                await Clients.Caller.SendAsync("Error", "Apenas gerentes ou administradores podem adicionar um usuário a uma empresa");
                 return false;
             }
 
@@ -446,7 +446,9 @@ namespace API.Hubs
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error adding user {UserId} to enterprise {EnterpriseId}", userId, enterpriseId);
-                throw;
+                var message = ex is InvalidOperationException ? ex.Message : "Ocorreu um erro. Tente novamente.";
+                await Clients.Caller.SendAsync("Error", message);
+                return false;
             }
         }
 
@@ -462,7 +464,7 @@ namespace API.Hubs
             if (userType != UserType.Admin && userType != UserType.Manager)
             {
                 _logger.LogWarning("RemoveUserFromEnterprise called by user without manager or admin role");
-                await Clients.Caller.SendAsync("Error", "Only managers or admins can remove a user from an enterprise");
+                await Clients.Caller.SendAsync("Error", "Apenas gerentes ou administradores podem remover um usuário de uma empresa");
                 return false;
             }
 
