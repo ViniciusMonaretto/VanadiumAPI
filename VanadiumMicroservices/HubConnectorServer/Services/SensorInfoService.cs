@@ -1,7 +1,9 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Shared.Models;
+using HubConnectorServer.DTO;
 
 namespace API.Services
 {
@@ -138,6 +140,66 @@ namespace API.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching group {GroupId} from SensorInfoServer", id);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<UserInfo>> GetManagedUsersAsync(string token)
+        {
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, "api/users/managed");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var response = await _sensorInfoHttpClient.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+                var result = await response.Content.ReadFromJsonAsync<IEnumerable<UserInfo>>(_jsonOptions);
+                return result ?? Enumerable.Empty<UserInfo>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching managed users from SensorInfoServer");
+                throw;
+            }
+        }
+
+        public async Task<UserInfo?> CreateManagedUserAsync(CreateManagedUserDto dto, string token)
+        {
+            try
+            {
+                var body = new { dto.Name, dto.Username, dto.Email, dto.Company, Password = dto.Password, UserType = dto.UserType };
+                using var request = new HttpRequestMessage(HttpMethod.Post, "api/users/managed");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                request.Content = JsonContent.Create(body, options: _jsonOptions);
+                var response = await _sensorInfoHttpClient.SendAsync(request);
+                if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                    return null;
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadFromJsonAsync<UserInfo>(_jsonOptions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating managed user in SensorInfoServer");
+                throw;
+            }
+        }
+
+        public async Task<bool> DeleteManagedUserAsync(int userId, string token)
+        {
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Delete, $"api/users/managed/{userId}");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var response = await _sensorInfoHttpClient.SendAsync(request);
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    return false;
+                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    return false;
+                response.EnsureSuccessStatusCode();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting managed user in SensorInfoServer");
                 throw;
             }
         }

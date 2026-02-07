@@ -75,25 +75,30 @@ namespace API.Hubs
         // Uses SensorInfoServer API endpoint for token validation (api/auth/validate)
         private async Task<(bool isValid, int userId)> ValidateTokenAndGetUserIdAsync(string? token)
         {
+            var (isValid, userId, _) = await ValidateTokenAndGetUserContextAsync(token);
+            return (isValid, userId);
+        }
+
+        // Validates token and extracts userId and UserType from JWT
+        private async Task<(bool isValid, int userId, UserType userType)> ValidateTokenAndGetUserContextAsync(string? token)
+        {
             if (string.IsNullOrWhiteSpace(token))
             {
                 _logger.LogWarning("Empty or null token provided from connection {ConnectionId}", Context.ConnectionId);
                 await Clients.Caller.SendAsync("Error", "Authentication required");
-                return (false, 0);
+                return (false, 0, UserType.User);
             }
 
-            // Validate token using SensorInfoServer API endpoint (api/auth/validate)
             var isValid = await _authService.ValidateTokenAsync(token);
             if (!isValid)
             {
                 _logger.LogWarning("Invalid or expired token for connection {ConnectionId}", Context.ConnectionId);
                 await Clients.Caller.SendAsync("Error", "Invalid or expired token");
-                return (false, 0);
+                return (false, 0, UserType.User);
             }
 
-            // Extract userId from token by decoding JWT
-            // Note: The validate API endpoint doesn't return userId, so we decode the token to extract it
             int userId = 0;
+            var userType = UserType.User;
             try
             {
                 var handler = new JwtSecurityTokenHandler();
@@ -103,13 +108,18 @@ namespace API.Hubs
                 {
                     userId = parsedUserId;
                 }
+                var userTypeClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == "UserType");
+                if (userTypeClaim != null && Enum.TryParse<UserType>(userTypeClaim.Value, out var parsedUserType))
+                {
+                    userType = parsedUserType;
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to extract userId from token for connection {ConnectionId}", Context.ConnectionId);
+                _logger.LogWarning(ex, "Failed to extract user info from token for connection {ConnectionId}", Context.ConnectionId);
             }
-            
-            return (true, userId);
+
+            return (true, userId, userType);
         }
 
         // Panels
@@ -321,6 +331,73 @@ namespace API.Hubs
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching multiple panel readings");
+                throw;
+            }
+        }
+
+        // Managed Users
+        public async Task<IEnumerable<UserDto>> GetManagedUsers(string token)
+        {
+            var (isValid, _) = await ValidateTokenAndGetUserIdAsync(token);
+            if (!isValid)
+            {
+                return Enumerable.Empty<UserDto>();
+            }
+
+            try
+            {
+                var users = await _sensorInfoService.GetManagedUsersAsync(token);
+                return users.Select(u => new UserDto(u));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching managed users");
+                throw;
+            }
+        }
+
+        public async Task<UserDto?> AddManagedUser(CreateManagedUserDto dto, string token)
+        {
+            var (isValid, _, userType) = await ValidateTokenAndGetUserContextAsync(token);
+            if (!isValid)
+            {
+                return null;
+            }
+
+            if (userType != UserType.Admin && userType != UserType.Manager)
+            {
+                _logger.LogWarning("AddManagedUser called by user without manager or admin role");
+                await Clients.Caller.SendAsync("Error", "Only managers or admins can add managed users");
+                return null;
+            }
+
+            try
+            {
+                var user = await _sensorInfoService.CreateManagedUserAsync(dto, token);
+                return user != null ? new UserDto(user) : null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding managed user");
+                throw;
+            }
+        }
+
+        public async Task<bool> RemoveManagedUser(int userId, string token)
+        {
+            var (isValid, _) = await ValidateTokenAndGetUserIdAsync(token);
+            if (!isValid)
+            {
+                return false;
+            }
+
+            try
+            {
+                return await _sensorInfoService.DeleteManagedUserAsync(userId, token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing managed user {UserId}", userId);
                 throw;
             }
         }

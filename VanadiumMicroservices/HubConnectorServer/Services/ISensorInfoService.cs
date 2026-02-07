@@ -1,4 +1,5 @@
 using Shared.Models;
+using HubConnectorServer.DTO;
 
 namespace API.Services
 {
@@ -11,6 +12,9 @@ namespace API.Services
         Task<IEnumerable<AlarmEvent>> GetAllAlarmEventsAsync();
         Task<IEnumerable<Group>> GetAllGroupsAsync(int? enterpriseId);
         Task<Group?> GetGroupByIdAsync(int id);
+        Task<IEnumerable<UserInfo>> GetManagedUsersAsync(string token);
+        Task<UserInfo?> CreateManagedUserAsync(CreateManagedUserDto dto, string token);
+        Task<bool> DeleteManagedUserAsync(int userId, string token);
     }
 }
 

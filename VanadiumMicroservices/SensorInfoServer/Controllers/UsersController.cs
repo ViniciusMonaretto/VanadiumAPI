@@ -102,6 +102,121 @@ namespace SensorInfoServer.Controllers
             }
         }
 
+        [HttpGet("managed")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<UserInfo>>> GetManagedUsers()
+        {
+            try
+            {
+                var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (currentUserIdClaim == null || !int.TryParse(currentUserIdClaim, out var managerId))
+                {
+                    return Unauthorized(new { message = "Invalid user token" });
+                }
+
+                var users = await _context.Users
+                    .Where(u => u.ManagerId == managerId)
+                    .ToListAsync();
+
+                foreach (var user in users)
+                {
+                    user.PasswordHash = string.Empty;
+                }
+
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving managed users");
+                return StatusCode(500, new { message = "Error retrieving managed users", error = ex.Message });
+            }
+        }
+
+        [HttpPost("managed")]
+        [Authorize(Policy = "ManagerOrAdmin")]
+        public async Task<ActionResult<UserInfo>> CreateManagedUser([FromBody] CreateUserDto createUserDto)
+        {
+            try
+            {
+                if (createUserDto == null)
+                {
+                    return BadRequest(new { message = "User data is required" });
+                }
+
+                var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (currentUserIdClaim == null || !int.TryParse(currentUserIdClaim, out var managerId))
+                {
+                    return Unauthorized(new { message = "Invalid user token" });
+                }
+
+                var existingUser = await _authService.GetUserByEmailAsync(createUserDto.Email);
+                if (existingUser != null)
+                {
+                    return Conflict(new { message = "Email already exists" });
+                }
+
+                var newUser = new UserInfo
+                {
+                    Name = createUserDto.Name,
+                    UserName = createUserDto.Username,
+                    Email = createUserDto.Email,
+                    Company = createUserDto.Company,
+                    PasswordHash = AuthService.HashPassword(createUserDto.Password),
+                    UserType = createUserDto.UserType,
+                    ManagerId = managerId
+                };
+
+                _context.Users.Add(newUser);
+                await _context.SaveChangesAsync();
+
+                newUser.PasswordHash = string.Empty;
+                return CreatedAtAction(nameof(GetUserById), new { id = newUser.Id }, newUser);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating managed user");
+                return StatusCode(500, new { message = "Error creating managed user", error = ex.Message });
+            }
+        }
+
+        [HttpDelete("managed/{id}")]
+        [Authorize]
+        public async Task<ActionResult> DeleteManagedUser(int id)
+        {
+            try
+            {
+                var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userTypeClaim = User.FindFirst("UserType")?.Value;
+                if (currentUserIdClaim == null || !int.TryParse(currentUserIdClaim, out var currentUserId))
+                {
+                    return Unauthorized(new { message = "Invalid user token" });
+                }
+
+                var user = await _context.Users.FindAsync(id);
+                if (user == null)
+                {
+                    return NotFound(new { message = $"User with id {id} not found" });
+                }
+
+                var isAdmin = userTypeClaim == UserType.Admin.ToString();
+                var isManagerOfUser = user.ManagerId == currentUserId;
+                if (!isAdmin && !isManagerOfUser)
+                {
+                    return Forbid("You can only remove users you manage");
+                }
+
+                _context.Users.Remove(user);
+                await _context.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing managed user");
+                return StatusCode(500, new { message = "Error removing managed user", error = ex.Message });
+            }
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<UserInfo>> GetUserById(int id)
         {

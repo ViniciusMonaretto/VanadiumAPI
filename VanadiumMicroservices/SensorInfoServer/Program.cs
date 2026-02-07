@@ -97,6 +97,9 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireClaim("UserType", UserType.Admin.ToString()));
+    options.AddPolicy("ManagerOrAdmin", policy => policy.RequireAssertion(context =>
+        context.User.HasClaim("UserType", UserType.Admin.ToString()) ||
+        context.User.HasClaim("UserType", UserType.Manager.ToString())));
 });
 
 builder.Services.AddScoped<IPanelInfoRepository, PanelInfoRepository>();
