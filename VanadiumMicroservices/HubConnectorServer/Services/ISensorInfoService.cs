@@ -15,6 +15,9 @@ namespace API.Services
         Task<IEnumerable<UserInfo>> GetManagedUsersAsync(string token);
         Task<UserInfo?> CreateManagedUserAsync(CreateManagedUserDto dto, string token);
         Task<bool> DeleteManagedUserAsync(int userId, string token);
+        Task<IEnumerable<Enterprise>> GetUserEnterprisesAsync(int userId, string token);
+        Task<bool> AddUserToEnterpriseAsync(int userId, int enterpriseId, string token);
+        Task<bool> RemoveUserFromEnterpriseAsync(int userId, int enterpriseId, string token);
     }
 }
 

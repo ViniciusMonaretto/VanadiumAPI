@@ -401,5 +401,80 @@ namespace API.Hubs
                 throw;
             }
         }
+
+        // User enterprises: allowed if requester is the user, the admin, or the manager of the user
+        public async Task<IEnumerable<EnterpriseDto>> GetUserEnterprises(int userId, string token)
+        {
+            var (isValid, _) = await ValidateTokenAndGetUserIdAsync(token);
+            if (!isValid)
+            {
+                return Enumerable.Empty<EnterpriseDto>();
+            }
+
+            try
+            {
+                var enterprises = await _sensorInfoService.GetUserEnterprisesAsync(userId, token);
+                return enterprises.Select(e => new EnterpriseDto(e));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching enterprises for user {UserId}", userId);
+                throw;
+            }
+        }
+
+        // Add user to enterprise: allowed if requester is the manager of both the user and the enterprise, or the admin
+        public async Task<bool> AddUserToEnterprise(int userId, int enterpriseId, string token)
+        {
+            var (isValid, _, userType) = await ValidateTokenAndGetUserContextAsync(token);
+            if (!isValid)
+            {
+                return false;
+            }
+
+            if (userType != UserType.Admin && userType != UserType.Manager)
+            {
+                _logger.LogWarning("AddUserToEnterprise called by user without manager or admin role");
+                await Clients.Caller.SendAsync("Error", "Only managers or admins can add a user to an enterprise");
+                return false;
+            }
+
+            try
+            {
+                return await _sensorInfoService.AddUserToEnterpriseAsync(userId, enterpriseId, token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding user {UserId} to enterprise {EnterpriseId}", userId, enterpriseId);
+                throw;
+            }
+        }
+
+        // Remove user from enterprise: allowed if requester is the manager of both the user and the enterprise, or the admin
+        public async Task<bool> RemoveUserFromEnterprise(int userId, int enterpriseId, string token)
+        {
+            var (isValid, _, userType) = await ValidateTokenAndGetUserContextAsync(token);
+            if (!isValid)
+            {
+                return false;
+            }
+
+            if (userType != UserType.Admin && userType != UserType.Manager)
+            {
+                _logger.LogWarning("RemoveUserFromEnterprise called by user without manager or admin role");
+                await Clients.Caller.SendAsync("Error", "Only managers or admins can remove a user from an enterprise");
+                return false;
+            }
+
+            try
+            {
+                return await _sensorInfoService.RemoveUserFromEnterpriseAsync(userId, enterpriseId, token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing user {UserId} from enterprise {EnterpriseId}", userId, enterpriseId);
+                throw;
+            }
+        }
     }
 }

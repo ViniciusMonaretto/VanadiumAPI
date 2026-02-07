@@ -320,6 +320,153 @@ namespace SensorInfoServer.Controllers
                 return StatusCode(500, new { message = "Error changing password", error = ex.Message });
             }
         }
+
+        [HttpGet("{userId}/enterprises")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<Enterprise>>> GetUserEnterprises(int userId)
+        {
+            try
+            {
+                var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userTypeClaim = User.FindFirst("UserType")?.Value;
+                if (currentUserIdClaim == null || !int.TryParse(currentUserIdClaim, out var currentUserId))
+                {
+                    return Unauthorized(new { message = "Invalid user token" });
+                }
+
+                var user = await _context.Users
+                    .Include(u => u.ManagedEnterprises)
+                    .Include(u => u.UserEnterprises)
+                    .FirstOrDefaultAsync(u => u.Id == userId);
+                if (user == null)
+                {
+                    return NotFound(new { message = $"User with id {userId} not found" });
+                }
+
+                var isAdmin = userTypeClaim == UserType.Admin.ToString();
+                var isSelf = currentUserId == userId;
+                var isManagerOfUser = user.ManagerId == currentUserId;
+                if (!isAdmin && !isSelf && !isManagerOfUser)
+                {
+                    return Forbid("You can only view enterprises of yourself, or if you are the admin or the user's manager");
+                }
+
+                var enterprises = user.ManagedEnterprises
+                    .Concat(user.UserEnterprises)
+                    .GroupBy(e => e.Id)
+                    .Select(g => g.First())
+                    .ToList();
+                return Ok(enterprises);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving user enterprises");
+                return StatusCode(500, new { message = "Error retrieving user enterprises", error = ex.Message });
+            }
+        }
+
+        [HttpPost("{userId}/enterprises/{enterpriseId}")]
+        [Authorize]
+        public async Task<ActionResult> AddUserToEnterprise(int userId, int enterpriseId)
+        {
+            try
+            {
+                var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userTypeClaim = User.FindFirst("UserType")?.Value;
+                if (currentUserIdClaim == null || !int.TryParse(currentUserIdClaim, out var currentUserId))
+                {
+                    return Unauthorized(new { message = "Invalid user token" });
+                }
+
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    return NotFound(new { message = $"User with id {userId} not found" });
+                }
+
+                var enterprise = await _context.Enterprises
+                    .Include(e => e.Users)
+                    .FirstOrDefaultAsync(e => e.Id == enterpriseId);
+                if (enterprise == null)
+                {
+                    return NotFound(new { message = $"Enterprise with id {enterpriseId} not found" });
+                }
+
+                var isAdmin = userTypeClaim == UserType.Admin.ToString();
+                var isManagerOfUser = user.ManagerId == currentUserId;
+                var isManagerOfEnterprise = enterprise.ManagerId == currentUserId;
+                if (!isAdmin && !(isManagerOfUser && isManagerOfEnterprise))
+                {
+                    return Forbid("Only the admin or the manager of both the user and the enterprise can add a user to an enterprise");
+                }
+
+                if (enterprise.Users.Any(u => u.Id == userId))
+                {
+                    return Conflict(new { message = "User is already in this enterprise" });
+                }
+
+                enterprise.Users.Add(user);
+                await _context.SaveChangesAsync();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding user to enterprise");
+                return StatusCode(500, new { message = "Error adding user to enterprise", error = ex.Message });
+            }
+        }
+
+        [HttpDelete("{userId}/enterprises/{enterpriseId}")]
+        [Authorize]
+        public async Task<ActionResult> RemoveUserFromEnterprise(int userId, int enterpriseId)
+        {
+            try
+            {
+                var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userTypeClaim = User.FindFirst("UserType")?.Value;
+                if (currentUserIdClaim == null || !int.TryParse(currentUserIdClaim, out var currentUserId))
+                {
+                    return Unauthorized(new { message = "Invalid user token" });
+                }
+
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    return NotFound(new { message = $"User with id {userId} not found" });
+                }
+
+                var enterprise = await _context.Enterprises
+                    .Include(e => e.Users)
+                    .FirstOrDefaultAsync(e => e.Id == enterpriseId);
+                if (enterprise == null)
+                {
+                    return NotFound(new { message = $"Enterprise with id {enterpriseId} not found" });
+                }
+
+                var isAdmin = userTypeClaim == UserType.Admin.ToString();
+                var isManagerOfUser = user.ManagerId == currentUserId;
+                var isManagerOfEnterprise = enterprise.ManagerId == currentUserId;
+                if (!isAdmin && !(isManagerOfUser && isManagerOfEnterprise))
+                {
+                    return Forbid("Only the admin or the manager of both the user and the enterprise can remove a user from an enterprise");
+                }
+
+                var member = enterprise.Users.FirstOrDefault(u => u.Id == userId);
+                if (member == null)
+                {
+                    return NotFound(new { message = "User is not in this enterprise" });
+                }
+
+                enterprise.Users.Remove(member);
+                await _context.SaveChangesAsync();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing user from enterprise");
+                return StatusCode(500, new { message = "Error removing user from enterprise", error = ex.Message });
+            }
+        }
     }
 }
 

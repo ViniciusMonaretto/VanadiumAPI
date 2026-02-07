@@ -203,6 +203,72 @@ namespace API.Services
                 throw;
             }
         }
+
+        public async Task<IEnumerable<Enterprise>> GetUserEnterprisesAsync(int userId, string token)
+        {
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, $"api/users/{userId}/enterprises");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var response = await _sensorInfoHttpClient.SendAsync(request);
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    return Enumerable.Empty<Enterprise>();
+                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    return Enumerable.Empty<Enterprise>();
+                response.EnsureSuccessStatusCode();
+                var result = await response.Content.ReadFromJsonAsync<IEnumerable<Enterprise>>(_jsonOptions);
+                return result ?? Enumerable.Empty<Enterprise>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching user enterprises from SensorInfoServer");
+                throw;
+            }
+        }
+
+        public async Task<bool> AddUserToEnterpriseAsync(int userId, int enterpriseId, string token)
+        {
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Post, $"api/users/{userId}/enterprises/{enterpriseId}");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var response = await _sensorInfoHttpClient.SendAsync(request);
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    return false;
+                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    return false;
+                if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                    return false;
+                response.EnsureSuccessStatusCode();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding user to enterprise in SensorInfoServer");
+                throw;
+            }
+        }
+
+        public async Task<bool> RemoveUserFromEnterpriseAsync(int userId, int enterpriseId, string token)
+        {
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Delete, $"api/users/{userId}/enterprises/{enterpriseId}");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var response = await _sensorInfoHttpClient.SendAsync(request);
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    return false;
+                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    return false;
+                response.EnsureSuccessStatusCode();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing user from enterprise in SensorInfoServer");
+                throw;
+            }
+        }
     }
 }
 
