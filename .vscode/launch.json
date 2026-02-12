@@ -2,14 +2,19 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Database Server",
+            // Use IntelliSense to find out which attributes exist for C# debugging
+            // Use hover for the description of the existing attributes
+            // For further information visit https://github.com/dotnet/vscode-csharp/blob/main/debugger-launchjson.md.
+            "name": ".NET Core Launch (web)",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build-database-server",
-            "program": "${workspaceFolder}/VanadiumMicroservices/DatabaseServer/build/bin/Debug/net8.0/DatabaseServer.dll",
+            "preLaunchTask": "build",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/build/bin/Debug/net8.0/VanadiumAPI.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
+            // Enable launching a web browser when ASP.NET Core starts. For more information: https://aka.ms/VSCode-CS-LaunchJson-WebBrowser
             "serverReadyAction": {
                 "action": "openExternally",
                 "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
@@ -22,31 +27,9 @@
             }
         },
         {
-            "name": "Mqtt Gateway",
+            "name": ".NET Core Attach",
             "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build-mqtt-gateway",
-            "program": "${workspaceFolder}/VanadiumMicroservices/MqttGateway/build/bin/Debug/net8.0/MqttGateway.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "stopAtEntry": false,
-            "serverReadyAction": {
-                "action": "openExternally",
-                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
-            },
-            "env": {
-                "ASPNETCORE_ENVIRONMENT": "Development"
-            },
-            "sourceFileMap": {
-                "/Views": "${workspaceFolder}/Views"
-            }
+            "request": "attach"
         }
-    ],
-    "compounds": [
-    {
-        "name": "All Microservices",
-        "configurations": ["Database Server", "Mqtt Gateway"],
-        "stopAll": true
-    }
-]
+    ]
 }

@@ -1,190 +1,61 @@
 {
     "Groups": [
         {
-            "Name": "Câmera 1"
+            "Name": "Câmera 1",
+            "EnterpriseId": 1
         }
     ],
     "Panels": [
         {
-            "Name": "Panel 1",
-            "GatewayId": "1C69209DFC08",
+            "Name": "Armazem A",
+            "GatewayId": "1C69209DFC01",
             "GroupId": 1,
             "Index": "0",
             "Color": "red",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 2
         },
         {
-            "Name": "Panel 2",
-            "GatewayId": "1C69209DFC08",
+            "Name": "Frigorifico B",
+            "GatewayId": "1C69209DFC02",
             "GroupId": 1,
-            "Index": "1",
+            "Index": "0",
             "Color": "green",
             "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 2
         },
         {
-            "Name": "Panel 3",
-            "GatewayId": "1C69209DFC08",
+            "Name": "Frigorifico C",
+            "GatewayId": "1C69209DFC03",
             "GroupId": 1,
-            "Index": "2",
+            "Index": "0",
             "Color": "blue",
             "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 4",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "3",
-            "Color": "yellow",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 5",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "4",
-            "Color": "red",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 6",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "5",
-            "Color": "green",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 7",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "6",
-            "Color": "blue",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 8",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "7",
-            "Color": "yellow",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 9",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "8",
-            "Color": "red",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 10",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "9",
-            "Color": "green",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 11",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "10",
-            "Color": "blue",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 12",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "11",
-            "Color": "yellow",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 13",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "12",
-            "Color": "red",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 14",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "13",
-            "Color": "green",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 15",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "14",
-            "Color": "blue",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 16",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "15",
-            "Color": "yellow",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 17",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "16",
-            "Color": "red",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 18",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "17",
-            "Color": "green",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 19",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "18",
-            "Color": "blue",
-            "Gain": 1,
-            "Offset": 0
-        },
-        {
-            "Name": "Panel 20",
-            "GatewayId": "1C69209DFC08",
-            "GroupId": 1,
-            "Index": "19",
-            "Color": "yellow",
-            "Gain": 1,
-            "Offset": 0
+            "Offset": 0,
+            "Multiplier": 1,
+            "Type": 2
         }
     ],
-    "Alarms": []
+    "Alarms": [],
+    "Enterprises": [
+        {
+            "Name": "Enterprise 1",
+            "ManagerId": 2,
+            "MaxUsers": 10,
+            "MaxPanels": 100
+        }
+    ],
+    "Users": [
+        {
+            "Name": "user",
+            "Email": "user@user.com",
+            "UserName": "user",
+            "Password": "user",
+            "UserType": 1
+        }
+    ]
 }

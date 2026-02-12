@@ -4,14 +4,14 @@
     "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/VanadiumAPI.csproj": {}
   },
   "projects": {
-    "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/VanadiumAPI.csproj": {
+    "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/Shared/Models/Models.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/VanadiumAPI.csproj",
-        "projectName": "VanadiumAPI",
-        "projectPath": "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/VanadiumAPI.csproj",
+        "projectUniqueName": "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/Shared/Models/Models.csproj",
+        "projectName": "Models",
+        "projectPath": "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/Shared/Models/Models.csproj",
         "packagesPath": "/home/vini/.nuget/packages/",
-        "outputPath": "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/obj/",
+        "outputPath": "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/Shared/Models/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/home/vini/.nuget/NuGet/NuGet.Config"
@@ -38,23 +38,86 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
-            "Confluent.Kafka": {
+            "Microsoft.Extensions.Hosting": {
               "target": "Package",
-              "version": "[2.12.0, )"
+              "version": "[8.0.1, )"
             },
+            "MongoDB.Driver": {
+              "target": "Package",
+              "version": "[3.5.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.121/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/VanadiumAPI.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/VanadiumAPI.csproj",
+        "projectName": "VanadiumAPI",
+        "projectPath": "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/VanadiumAPI.csproj",
+        "packagesPath": "/home/vini/.nuget/packages/",
+        "outputPath": "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/vini/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/Shared/Models/Models.csproj": {
+                "projectPath": "/home/vini/ioCloud/VanadiumServer/VanadiumAPI/Shared/Models/Models.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
             "MQTTnet": {
               "target": "Package",
               "version": "[5.0.1.1416, )"
             },
-            "Microsoft.AspNetCore.Http.Connections.Common": {
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
               "target": "Package",
-              "version": "[10.0.0, )"
+              "version": "[8.0.11, )"
+            },
+            "Microsoft.AspNetCore.OpenApi": {
+              "target": "Package",
+              "version": "[8.0.21, )"
             },
             "Microsoft.AspNetCore.SignalR": {
-              "target": "Package",
-              "version": "[1.2.0, )"
-            },
-            "Microsoft.AspNetCore.SignalR.Core": {
               "target": "Package",
               "version": "[1.2.0, )"
             },
@@ -72,9 +135,21 @@
               "target": "Package",
               "version": "[8.0.4, )"
             },
+            "Microsoft.Extensions.Http": {
+              "target": "Package",
+              "version": "[8.0.1, )"
+            },
             "MongoDB.Driver": {
               "target": "Package",
               "version": "[3.5.2, )"
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[6.6.2, )"
+            },
+            "System.IdentityModel.Tokens.Jwt": {
+              "target": "Package",
+              "version": "[8.1.2, )"
             }
           },
           "imports": [

@@ -2,91 +2,39 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "clean-database-server",
-            "command": "rm",
-            "type": "shell",
-            "args": [
-                "-rf",
-                "${workspaceFolder}/VanadiumMicroservices/DatabaseServer/bin",
-                "${workspaceFolder}/VanadiumMicroservices/DatabaseServer/obj/Debug",
-                "${workspaceFolder}/VanadiumMicroservices/DatabaseServer/obj/Release",
-                "${workspaceFolder}/VanadiumMicroservices/DatabaseServer/build/obj/Debug",
-                "${workspaceFolder}/VanadiumMicroservices/DatabaseServer/build/obj/Release",
-                "${workspaceFolder}/Shared/Models/obj/Debug",
-                "${workspaceFolder}/Shared/Models/obj/Release"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "restore-database-server",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "restore",
-                "${workspaceFolder}/VanadiumMicroservices/DatabaseServer/DatabaseServer.csproj"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "build-database-server",
-            "dependsOn": [
-                "clean-database-server",
-                "restore-database-server"
-            ],
-            "dependsOrder": "sequence",
+            "label": "build",
             "command": "dotnet",
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/VanadiumMicroservices/DatabaseServer/DatabaseServer.csproj",
+                "${workspaceFolder}/VanadiumAPI.csproj",
                 "/property:GenerateFullPaths=true",
-                "/property:BaseOutputPath=${workspaceFolder}/VanadiumMicroservices/DatabaseServer/build/bin/",
+                "/consoleloggerparameters:NoSummary;ForceNoAlign",
+                "/property:BaseOutputPath=${workspaceFolder}/build/bin/"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "publish",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "publish",
+                "${workspaceFolder}/VanadiumAPI.csproj",
+                "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary;ForceNoAlign"
             ],
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "clean-mqtt-gateway",
-            "command": "rm",
-            "type": "shell",
-            "args": [
-                "-rf",
-                "${workspaceFolder}/VanadiumMicroservices/MqttGateway/bin",
-                "${workspaceFolder}/VanadiumMicroservices/MqttGateway/obj/Debug",
-                "${workspaceFolder}/VanadiumMicroservices/MqttGateway/obj/Release",
-                "${workspaceFolder}/VanadiumMicroservices/MqttGateway/build/obj/Debug",
-                "${workspaceFolder}/VanadiumMicroservices/MqttGateway/build/obj/Release",
-                "${workspaceFolder}/Shared/Models/obj/Debug",
-                "${workspaceFolder}/Shared/Models/obj/Release"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "restore-mqtt-gateway",
+            "label": "watch",
             "command": "dotnet",
             "type": "process",
             "args": [
-                "restore",
-                "${workspaceFolder}/VanadiumMicroservices/MqttGateway/MqttGateway.csproj",
-                "/property:BaseIntermediateOutputPath=${workspaceFolder}/VanadiumMicroservices/MqttGateway/build/obj/"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "build-mqtt-gateway",
-            "dependsOn": [
-                "clean-mqtt-gateway",
-                "restore-mqtt-gateway"
-            ],
-            "dependsOrder": "sequence",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "build",
-                "${workspaceFolder}/VanadiumMicroservices/MqttGateway/MqttGateway.csproj",
-                "/property:GenerateFullPaths=true",
-                "/property:BaseOutputPath=${workspaceFolder}/VanadiumMicroservices/MqttGateway/build/bin/",
-                "/consoleloggerparameters:NoSummary;ForceNoAlign"
+                "watch",
+                "run",
+                "--project",
+                "${workspaceFolder}/VanadiumAPI.csproj"
             ],
             "problemMatcher": "$msCompile"
         }
