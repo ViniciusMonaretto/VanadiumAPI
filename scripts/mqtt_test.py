@@ -137,7 +137,7 @@ try:
             client.publish(topic, payload_json)
             print("Sent MQTT message")
             count += 1
-        time.sleep(10)
+        time.sleep(60)
 except KeyboardInterrupt:
     print("Stopping the client.")
     client.loop_stop()

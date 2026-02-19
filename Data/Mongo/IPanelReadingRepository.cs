@@ -12,5 +12,7 @@ namespace Data.Mongo
         Task<Dictionary<int, List<PanelReading>>> GetPanelReadingsByPanelIds(IEnumerable<int> panelIds,
                                                                        DateTime? startDate,
                                                                        DateTime? endDate);
+
+        Task<Dictionary<int, List<FlowConsumption>>> GetFlowConsumptionsOfPanels(IEnumerable<int> panelIds);
     }
 }

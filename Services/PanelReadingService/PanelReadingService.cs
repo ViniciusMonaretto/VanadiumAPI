@@ -23,5 +23,10 @@ namespace VanadiumAPI.Services
         {
             return await _repository.GetPanelReadingsByPanelIds(panelIds, startDate, endDate);
         }
+
+        public async Task<Dictionary<int, List<FlowConsumption>>> GetFlowConsumptionsOfPanelsAsync(IEnumerable<int> panelIds)
+        {
+            return await _repository.GetFlowConsumptionsOfPanels(panelIds);
+        }
     }
 }

@@ -161,6 +161,18 @@ namespace VanadiumAPI.Hubs
             return await _panelReadingService.GetPanelReadingsAsync(panelId, startDate, endDate);
         }
 
+        public async Task<FlowConsumption> GetPanelFlowConsumption(int panelId, string token)
+        {
+            var (isValid, _) = await ValidateTokenAndGetUserIdAsync(token);
+            if (!isValid) return null;
+
+            var flowConsumptions = await _panelReadingService.GetFlowConsumptionsOfPanelsAsync(new[] { panelId });
+            if (!flowConsumptions.TryGetValue(panelId, out var list) || list == null || list.Count == 0)
+                return null;
+
+            return list[0];
+        }
+
         public class PanelReadingsRequest
         {
             public int[] SensorInfos { get; set; } = Array.Empty<int>();

@@ -71,7 +71,8 @@ namespace VanadiumAPI.SensorDataSaver
         private async Task PersistRecentPanelReadingsAsync(CancellationToken stoppingToken)
         {
             var cutoffTime = DateTime.Now.AddSeconds(-90);
-            var recentReadings = _lastPanelReadings.Values.Where(x => x.ReadingTime >= cutoffTime).ToList();
+            var recentReadings = _lastPanelReadings.Values
+                                                   .Where(x => x.ReadingTime >= cutoffTime).ToList();
             if (recentReadings.Count == 0) return;
 
             using var scope = _provider.CreateScope();
@@ -139,19 +140,48 @@ namespace VanadiumAPI.SensorDataSaver
             }
 
             var timestamp = message.GatewayData.Timestamp;
+            var saveNowReadings = new List<PanelReading>();
+
             for (var i = 0; i < message.GatewayData.Sensors.Count; i++)
-                ProcessSensorReading(message.GatewayId, i, message.GatewayData.Sensors[i], timestamp);
+            {
+                var (reading, saveNow) = ProcessSensorReading(message.GatewayId, i, message.GatewayData.Sensors[i], timestamp);
+                if (reading != null && saveNow)
+                    saveNowReadings.Add(reading);
+            }
+
+            if (saveNowReadings.Count > 0)
+            {
+                var toInsert = saveNowReadings;
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        using var scope = _provider.CreateScope();
+                        var repo = scope.ServiceProvider.GetRequiredService<IPanelReadingRepository>();
+                        await repo.AddAsync(toInsert);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to persist {Count} flow sensor readings", toInsert.Count);
+                    }
+                });
+            }
 
             await Task.CompletedTask;
         }
 
-        private bool ProcessSensorReading(string gatewayId, int sensorIndex, SensorData sensor, DateTime timestamp)
+        private bool ShouldSaveNow(Panel panel)
+        {
+            return panel.Type == PanelType.Flow;
+        }
+
+        private (PanelReading? reading, bool saveNow) ProcessSensorReading(string gatewayId, int sensorIndex, SensorData sensor, DateTime timestamp)
         {
             var sensorKey = $"{gatewayId}-{sensorIndex}";
             if (!_panels.TryGetValue(sensorKey, out var panel))
             {
                 _logger.LogDebug("Panel not found: {Index} for GatewayId: {GatewayId}", sensorIndex, gatewayId);
-                return false;
+                return (null, false);
             }
 
             var panelReading = new PanelReading
@@ -160,8 +190,12 @@ namespace VanadiumAPI.SensorDataSaver
                 ReadingTime = timestamp,
                 Value = sensor.Value,
             };
+
+            if (ShouldSaveNow(panel))
+                return (panelReading, true);
+
             _lastPanelReadings.AddOrUpdate(panel.Id, panelReading, (_, _) => panelReading);
-            return true;
+            return (panelReading, false);
         }
     }
 }

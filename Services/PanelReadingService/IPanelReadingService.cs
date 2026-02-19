@@ -6,5 +6,6 @@ namespace VanadiumAPI.Services
     {
         Task<IEnumerable<PanelReading>> GetPanelReadingsAsync(int panelId, DateTime? startDate = null, DateTime? endDate = null);
         Task<Dictionary<int, List<PanelReading>>> GetMultiplePanelReadingsAsync(IEnumerable<int> panelIds, DateTime? startDate = null, DateTime? endDate = null);
+        Task<Dictionary<int, List<FlowConsumption>>> GetFlowConsumptionsOfPanelsAsync(IEnumerable<int> panelIds);
     }
 }
