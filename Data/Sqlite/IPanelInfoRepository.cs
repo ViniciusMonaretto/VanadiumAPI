@@ -10,9 +10,16 @@ namespace Data.Sqlite
         Task<bool> SaveAll();
         Task<IEnumerable<Panel>> GetAllPanels(Expression<Func<Panel, bool>>? filter = null);
         Task<Panel?> GetPanelById(int id);
+        Task<Panel?> CreatePanelAsync(Panel panel);
+        Task<bool> UpdatePanelAsync(Panel panel);
+        Task<bool> DeletePanelAsync(Panel panel);
+        Task<Panel?> GetPanelByGatewayAndIndexAsync(string gatewayId, string index);
         Task<IEnumerable<Group>> GetAllGroups();
         Task<Group?> GetGroupById(int id);
         Task<IEnumerable<Group>> GetEnterpriseGroups(int enterpriseId);
+        Task<IEnumerable<Gateway>> GetGatewaysByEnterpriseId(int enterpriseId);
+        Task<IEnumerable<Gateway>> GetAllGatewaysAsync();
+        Task<Gateway?> GetGatewayByGatewayIdAsync(string gatewayId);
         Task<IEnumerable<Alarm>> GetAllAlarms();
         Task<Alarm?> GetAlarmById(int id);
         Task<IEnumerable<AlarmEvent>> GetAllAlarmEvents();

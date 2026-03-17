@@ -142,11 +142,15 @@ namespace VanadiumAPI.SensorDataSaver
             var timestamp = message.GatewayData.Timestamp;
             var saveNowReadings = new List<PanelReading>();
 
-            for (var i = 0; i < message.GatewayData.Sensors.Count; i++)
+            using (var scope = _provider.CreateScope())
             {
-                var (reading, saveNow) = ProcessSensorReading(message.GatewayId, i, message.GatewayData.Sensors[i], timestamp);
-                if (reading != null && saveNow)
-                    saveNowReadings.Add(reading);
+                var panelRepo = scope.ServiceProvider.GetRequiredService<IPanelInfoRepository>();
+                for (var i = 0; i < message.GatewayData.Sensors.Count; i++)
+                {
+                    var (reading, saveNow) = await ProcessSensorReadingAsync(message.GatewayId, i, message.GatewayData.Sensors[i], timestamp, panelRepo);
+                    if (reading != null && saveNow)
+                        saveNowReadings.Add(reading);
+                }
             }
 
             if (saveNowReadings.Count > 0)
@@ -166,8 +170,6 @@ namespace VanadiumAPI.SensorDataSaver
                     }
                 });
             }
-
-            await Task.CompletedTask;
         }
 
         private bool ShouldSaveNow(Panel panel)
@@ -175,12 +177,13 @@ namespace VanadiumAPI.SensorDataSaver
             return panel.Type == PanelType.Flow;
         }
 
-        private (PanelReading? reading, bool saveNow) ProcessSensorReading(string gatewayId, int sensorIndex, SensorData sensor, DateTime timestamp)
+        private async Task<(PanelReading? reading, bool saveNow)> ProcessSensorReadingAsync(string gatewayId, int sensorIndex, SensorData sensor, DateTime timestamp, IPanelInfoRepository panelRepo)
         {
-            var sensorKey = $"{gatewayId}-{sensorIndex}";
-            if (!_panels.TryGetValue(sensorKey, out var panel))
+            var indexStr = sensorIndex.ToString();
+            var panel = await panelRepo.GetPanelByGatewayAndIndexAsync(gatewayId, indexStr);
+            if (panel == null)
             {
-                _logger.LogDebug("Panel not found: {Index} for GatewayId: {GatewayId}", sensorIndex, gatewayId);
+                _logger.LogDebug("Panel not found in database: GatewayId={GatewayId}, Index={Index}", gatewayId, indexStr);
                 return (null, false);
             }
 
@@ -196,6 +199,25 @@ namespace VanadiumAPI.SensorDataSaver
 
             _lastPanelReadings.AddOrUpdate(panel.Id, panelReading, (_, _) => panelReading);
             return (panelReading, false);
+        }
+
+        public void AddPanel(Panel panel)
+        {
+            var key = $"{panel.GatewayId}-{panel.Index}";
+            _panels.AddOrUpdate(key, panel, (_, _) => panel);
+        }
+
+        public void UpdatePanel(Panel panel)
+        {
+            var key = $"{panel.GatewayId}-{panel.Index}";
+            _panels.AddOrUpdate(key, panel, (_, _) => panel);
+        }
+
+        public void RemovePanel(int panelId, string gatewayId, string index)
+        {
+            var key = $"{gatewayId}-{index}";
+            _panels.TryRemove(key, out _);
+            _lastPanelReadings.TryRemove(panelId, out _);
         }
     }
 }

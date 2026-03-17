@@ -45,6 +45,14 @@ namespace Shared.Models
         public GatewayData GatewayData { get; set; } = new GatewayData();
     }
 
+    public class SystemMessageModel : MessageModel
+    {
+        public string GatewayId { get; set; } = string.Empty;
+        public DateTime? Uptime { get; set; }
+        public string? IpAddress { get; set; }
+        public bool IsConnected { get; set; }
+    }
+
     public class SensorData
     {
         [JsonPropertyName("value")]
@@ -62,5 +70,27 @@ namespace Shared.Models
 
         [JsonPropertyName("sensors")]
         public List<SensorData> Sensors { get; set; }
+    }
+
+    /// <summary>Payload for MQTT topic iocloud/response/{gatewayId}/command. command_index 2 = system.</summary>
+    public class CommandResponsePayload
+    {
+        [JsonPropertyName("command_index")]
+        public int CommandIndex { get; set; }
+
+        [JsonPropertyName("command_status")]
+        public int CommandStatus { get; set; }
+
+        [JsonPropertyName("device_id")]
+        public string DeviceId { get; set; } = string.Empty;
+
+        [JsonPropertyName("ip_address")]
+        public string? IpAddress { get; set; }
+
+        [JsonPropertyName("uptime")]
+        public long UptimeSeconds { get; set; }
+
+        [JsonPropertyName("sensors")]
+        public List<SensorData>? Sensors { get; set; }
     }
 }

@@ -15,7 +15,8 @@ namespace VanadiumAPI.Mqtt
         private readonly MqttClientOptions _mqttClientOptions;
         private readonly ILogger<MqttService> _logger;
         private readonly ISensorDataSaver _sensorDataSaver;
-        private readonly IPanelBroadcastService _broadcastService;
+        private readonly IHubBroadcastService _broadcastService;
+        private readonly IGatewayServerService _gatewayServer;
         private readonly HashSet<string> _subscribedTopics = new();
         private readonly Channel<(string Topic, string Payload)> _messageQueue = Channel.CreateUnbounded<(string, string)>();
 
@@ -23,11 +24,13 @@ namespace VanadiumAPI.Mqtt
             IOptions<MqttOptions> mqttOptions,
             ILogger<MqttService> logger,
             ISensorDataSaver sensorDataSaver,
-            IPanelBroadcastService broadcastService)
+            IHubBroadcastService broadcastService,
+            IGatewayServerService gatewayServer)
         {
             _logger = logger;
             _sensorDataSaver = sensorDataSaver;
             _broadcastService = broadcastService;
+            _gatewayServer = gatewayServer;
 
             var mqttFactory = new MqttClientFactory();
             _mqttClient = mqttFactory.CreateMqttClient();
@@ -99,18 +102,19 @@ namespace VanadiumAPI.Mqtt
         private void ProcessOneMessage(string topic, string payload)
         {
             var parts = topic.Split('/');
-            if (parts.Length < 5)
+            if (parts.Length < 4)
             {
                 _logger.LogWarning("Invalid topic format: {Topic}", topic);
                 return;
             }
 
             var gatewayId = parts[2];
-            var command = parts[4];
+            // iocloud/response/{gatewayId}/command (4 parts) or iocloud/response/{gatewayId}/.../command (5+ parts)
+            var command = parts.Length >= 5 ? parts[4] : parts[3];
 
             if (command == "report")
             {
-                var gatewayData = GatewayDataTranslator.Translate(payload);
+                var gatewayData = GatewayDataTranslator.Translate(command, payload) as GatewayData;
                 if (gatewayData == null)
                 {
                     _logger.LogError("Invalid gateway data: {Payload}", payload);
@@ -125,6 +129,16 @@ namespace VanadiumAPI.Mqtt
                 };
                 _sensorDataSaver.PushSensorData(msg);
                 _ = _broadcastService.BroadcastSensorData(msg);
+            }
+            else if (command == "command" || command == "system")
+            {
+                var systemData = GatewayDataTranslator.Translate(command, payload) as SystemMessageModel;
+                if (systemData != null)
+                {
+                    systemData.Topic = topic;
+                    systemData.GatewayId = gatewayId;
+                    _ = _gatewayServer.AddGatewaySystemInfoAsync(gatewayId, systemData);
+                }
             }
             else
             {

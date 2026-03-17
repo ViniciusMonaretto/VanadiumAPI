@@ -7,6 +7,7 @@ namespace Data.Sqlite
 {
     public class SqliteDataContext : DbContext
     {
+        public DbSet<Gateway> Gateways { get; set; }
         public DbSet<Group> Groups { get; set; }
         public DbSet<Panel> Panels { get; set; }
         public DbSet<Alarm> Alarms { get; set; }
@@ -28,6 +29,23 @@ namespace Data.Sqlite
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
+            builder.Entity<Gateway>()
+                .HasIndex(g => g.GatewayId)
+                .IsUnique();
+
+            builder.Entity<Gateway>()
+                .HasOne(g => g.Enterprise)
+                .WithMany(e => e.Gateways)
+                .HasForeignKey(g => g.EnterpriseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Panel>()
+                .HasOne(p => p.Gateway)
+                .WithMany(g => g.Panels)
+                .HasForeignKey(p => p.GatewayId)
+                .HasPrincipalKey(g => g.GatewayId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             builder.Entity<Panel>()
                 .HasOne(p => p.Group)
                 .WithMany(g => g.Panels)
@@ -150,6 +168,14 @@ namespace Data.Sqlite
                     SaveChanges();
                 }
 
+                if (config.Gateways != null && config.Gateways.Count > 0)
+                {
+                    if (defaultEnterprise == null) throw new Exception("At least one enterprise is required when seeding gateways (add Enterprises or Users in config.json).");
+                    foreach (var g in config.Gateways)
+                        Gateways.Add(new Gateway { GatewayId = g.GatewayId, EnterpriseId = defaultEnterprise.Id, Enterprise = defaultEnterprise });
+                    SaveChanges();
+                }
+
                 if (config.Panels != null && config.Panels.Count > 0)
                 {
                     Panels.AddRange(config.Panels);
@@ -195,11 +221,17 @@ namespace Data.Sqlite
 
     public class SeedConfig
     {
+        public List<SeedGateway>? Gateways { get; set; }
         public List<Group>? Groups { get; set; }
         public List<Panel>? Panels { get; set; }
         public List<Alarm>? Alarms { get; set; }
         public List<SeedUserInfo>? Users { get; set; }
         public List<Enterprise>? Enterprises { get; set; }
+    }
+
+    public class SeedGateway
+    {
+        public required string GatewayId { get; set; }
     }
 
     public class SeedUserInfo

@@ -29,6 +29,29 @@ namespace Data.Sqlite
         public async Task<Panel?> GetPanelById(int id) =>
             await _context.Panels.Include(p => p.Alarms).FirstOrDefaultAsync(p => p.Id == id);
 
+        public async Task<Panel?> CreatePanelAsync(Panel panel)
+        {
+            _context.Add(panel);
+            if (await _context.SaveChangesAsync() <= 0) return null;
+            return panel;
+        }
+
+        public async Task<bool> UpdatePanelAsync(Panel panel)
+        {
+            if (_context.Entry(panel).State == EntityState.Detached)
+                _context.Panels.Update(panel);
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> DeletePanelAsync(Panel panel)
+        {
+            _context.Remove(panel);
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<Panel?> GetPanelByGatewayAndIndexAsync(string gatewayId, string index) =>
+            await _context.Panels.Include(p => p.Alarms).FirstOrDefaultAsync(p => p.GatewayId == gatewayId && p.Index == index);
+
         public async Task<IEnumerable<Group>> GetAllGroups() =>
             await _context.Groups
                 .Include(g => g.Panels)
@@ -49,6 +72,18 @@ namespace Data.Sqlite
                 .ThenInclude(a => a.AlarmEvents)
                 .Where(g => g.EnterpriseId == enterpriseId)
                 .ToListAsync();
+
+        public async Task<IEnumerable<Gateway>> GetGatewaysByEnterpriseId(int enterpriseId) =>
+            await _context.Gateways
+                .Include(g => g.Panels)
+                .Where(g => g.EnterpriseId == enterpriseId)
+                .ToListAsync();
+
+        public async Task<IEnumerable<Gateway>> GetAllGatewaysAsync() =>
+            await _context.Gateways.ToListAsync();
+
+        public async Task<Gateway?> GetGatewayByGatewayIdAsync(string gatewayId) =>
+            await _context.Gateways.FirstOrDefaultAsync(g => g.GatewayId == gatewayId);
 
         public async Task<IEnumerable<Alarm>> GetAllAlarms() =>
             await _context.Alarms.Include(a => a.AlarmEvents).ToListAsync();

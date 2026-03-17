@@ -13,20 +13,26 @@ namespace VanadiumAPI.Hubs
         private readonly ISensorInfoService _sensorInfoService;
         private readonly IPanelReadingService _panelReadingService;
         private readonly IAuthService _authService;
-        private readonly IPanelBroadcastService _broadcastService;
+        private readonly IHubBroadcastService _broadcastService;
+        private readonly IGatewayServerService _gatewayServer;
+        private readonly IPanelService _panelService;
         private readonly ILogger<PanelReadingsHub> _logger;
 
         public PanelReadingsHub(
             ISensorInfoService sensorInfoService,
             IPanelReadingService panelReadingService,
             IAuthService authService,
-            IPanelBroadcastService broadcastService,
+            IHubBroadcastService broadcastService,
+            IGatewayServerService gatewayServer,
+            IPanelService panelService,
             ILogger<PanelReadingsHub> logger)
         {
             _sensorInfoService = sensorInfoService;
             _panelReadingService = panelReadingService;
             _authService = authService;
             _broadcastService = broadcastService;
+            _gatewayServer = gatewayServer;
+            _panelService = panelService;
             _logger = logger;
         }
 
@@ -38,6 +44,7 @@ namespace VanadiumAPI.Hubs
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
+            _broadcastService.RemoveConnection(Context.ConnectionId);
             await base.OnDisconnectedAsync(exception);
         }
 
@@ -142,8 +149,17 @@ namespace VanadiumAPI.Hubs
             var (isValid, userId) = await ValidateTokenAndGetUserIdAsync(token);
             if (!isValid) return new Dictionary<string, GroupDto>();
             var groups = await _sensorInfoService.GetAllGroupsAsync(enterprise.EnterpriseId);
-            _broadcastService.SetUserPanels(Context.ConnectionId, userId, groups.SelectMany(g => g.Panels.Select(p => (p.Id, p.GatewayId))).ToList());
+            _broadcastService.SetUserPanels(Context.ConnectionId, userId, enterprise.EnterpriseId, groups.SelectMany(g => g.Panels.Select(p => (p.Id, p.GatewayId))).ToList());
             return groups.ToDictionary(g => g.Id.ToString(), g => new GroupDto(g));
+        }
+
+        public async Task<IReadOnlyDictionary<string, SystemMessageModel>> GetGatewayInfo(string token)
+        {
+            var (isValid, _) = await ValidateTokenAndGetUserIdAsync(token);
+            if (!isValid) return new Dictionary<string, SystemMessageModel>();
+            var enterpriseId = _broadcastService.GetConnectionEnterpriseId(Context.ConnectionId);
+            if (enterpriseId == null) return new Dictionary<string, SystemMessageModel>();
+            return await _gatewayServer.GetGatewayInfoByEnterpriseAsync(enterpriseId.Value);
         }
 
         public async Task<GroupDto?> GetGroupById(int id, string token)
@@ -256,6 +272,126 @@ namespace VanadiumAPI.Hubs
                 return false;
             }
             return await _sensorInfoService.RemoveUserFromEnterpriseAsync(userId, enterpriseId, token);
+        }
+
+        public async Task<string?> AddGateway(AddGatewayDto dto, string token)
+        {
+            var (isValid, _, userType) = await ValidateTokenAndGetUserContextAsync(token);
+            if (!isValid) return null;
+            if (userType != UserType.Admin && userType != UserType.Manager)
+            {
+                await Clients.Caller.SendAsync("Error", "Apenas gerentes ou administradores podem adicionar um gateway");
+                return null;
+            }
+            var enterpriseId = _broadcastService.GetConnectionEnterpriseId(Context.ConnectionId);
+            if (enterpriseId == null)
+            {
+                await Clients.Caller.SendAsync("Error", "Selecione uma empresa antes de adicionar um gateway");
+                return null;
+            }
+            var (gatewayId, error) = await _gatewayServer.AddGatewayAsync(dto, enterpriseId.Value);
+            if (error != null)
+            {
+                await Clients.Caller.SendAsync("Error", error);
+                return null;
+            }
+            return gatewayId;
+        }
+
+        public async Task<bool> DeleteGateway(string gatewayId, string token)
+        {
+            var (isValid, _, userType) = await ValidateTokenAndGetUserContextAsync(token);
+            if (!isValid) return false;
+            if (userType != UserType.Admin && userType != UserType.Manager)
+            {
+                await Clients.Caller.SendAsync("Error", "Apenas gerentes ou administradores podem remover um gateway");
+                return false;
+            }
+            var enterpriseId = _broadcastService.GetConnectionEnterpriseId(Context.ConnectionId);
+            if (enterpriseId == null)
+            {
+                await Clients.Caller.SendAsync("Error", "Selecione uma empresa antes de remover um gateway");
+                return false;
+            }
+            var (success, error) = await _gatewayServer.DeleteGatewayAsync(gatewayId, enterpriseId.Value);
+            if (error != null)
+            {
+                await Clients.Caller.SendAsync("Error", error);
+                return false;
+            }
+            return success;
+        }
+
+        public async Task<PanelDto?> AddPanel(AddPanelDto dto, string token)
+        {
+            var (isValid, _, userType) = await ValidateTokenAndGetUserContextAsync(token);
+            if (!isValid) return null;
+            if (userType != UserType.Admin && userType != UserType.Manager)
+            {
+                await Clients.Caller.SendAsync("Error", "Apenas gerentes ou administradores podem adicionar um painel");
+                return null;
+            }
+            var enterpriseId = _broadcastService.GetConnectionEnterpriseId(Context.ConnectionId);
+            if (enterpriseId == null)
+            {
+                await Clients.Caller.SendAsync("Error", "Selecione uma empresa antes de adicionar um painel");
+                return null;
+            }
+            var (panel, error) = await _panelService.AddPanelAsync(dto, enterpriseId.Value);
+            if (error != null)
+            {
+                await Clients.Caller.SendAsync("Error", error);
+                return null;
+            }
+            return panel;
+        }
+
+        public async Task<PanelDto?> UpdatePanel(UpdatePanelDto dto, string token)
+        {
+            var (isValid, _, userType) = await ValidateTokenAndGetUserContextAsync(token);
+            if (!isValid) return null;
+            if (userType != UserType.Admin && userType != UserType.Manager)
+            {
+                await Clients.Caller.SendAsync("Error", "Apenas gerentes ou administradores podem modificar um painel");
+                return null;
+            }
+            var enterpriseId = _broadcastService.GetConnectionEnterpriseId(Context.ConnectionId);
+            if (enterpriseId == null)
+            {
+                await Clients.Caller.SendAsync("Error", "Selecione uma empresa antes de modificar um painel");
+                return null;
+            }
+            var (panel, error) = await _panelService.UpdatePanelAsync(dto, enterpriseId.Value);
+            if (error != null)
+            {
+                await Clients.Caller.SendAsync("Error", error);
+                return null;
+            }
+            return panel;
+        }
+
+        public async Task<bool> DeletePanel(int panelId, string token)
+        {
+            var (isValid, _, userType) = await ValidateTokenAndGetUserContextAsync(token);
+            if (!isValid) return false;
+            if (userType != UserType.Admin && userType != UserType.Manager)
+            {
+                await Clients.Caller.SendAsync("Error", "Apenas gerentes ou administradores podem remover um painel");
+                return false;
+            }
+            var enterpriseId = _broadcastService.GetConnectionEnterpriseId(Context.ConnectionId);
+            if (enterpriseId == null)
+            {
+                await Clients.Caller.SendAsync("Error", "Selecione uma empresa antes de remover um painel");
+                return false;
+            }
+            var (success, error) = await _panelService.DeletePanelAsync(panelId, enterpriseId.Value);
+            if (error != null)
+            {
+                await Clients.Caller.SendAsync("Error", error);
+                return false;
+            }
+            return success;
         }
     }
 }

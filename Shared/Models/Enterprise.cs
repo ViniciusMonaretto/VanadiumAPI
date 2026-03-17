@@ -5,6 +5,7 @@ namespace Shared.Models
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public List<Group> Groups { get; set; } = new List<Group>();
+        public List<Gateway> Gateways { get; set; } = new List<Gateway>();
         public int ManagerId { get; set; }
         public UserInfo Manager { get; set; } = new UserInfo { Name = string.Empty, Email = string.Empty, PasswordHash = string.Empty };
         public List<UserInfo> Users { get; set; } = new List<UserInfo>();

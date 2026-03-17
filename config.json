@@ -1,61 +1,63 @@
 {
-    "Groups": [
-        {
-            "Name": "Câmera 1",
-            "EnterpriseId": 1
-        }
-    ],
-    "Panels": [
-        {
-            "Name": "Armazem A",
-            "GatewayId": "1C69209DFC01",
-            "GroupId": 1,
-            "Index": "0",
-            "Color": "red",
-            "Gain": 1,
-            "Offset": 0,
-            "Multiplier": 1,
-            "Type": 2
-        },
-        {
-            "Name": "Frigorifico B",
-            "GatewayId": "1C69209DFC02",
-            "GroupId": 1,
-            "Index": "0",
-            "Color": "green",
-            "Gain": 1,
-            "Offset": 0,
-            "Multiplier": 1,
-            "Type": 2
-        },
-        {
-            "Name": "Frigorifico C",
-            "GatewayId": "1C69209DFC03",
-            "GroupId": 1,
-            "Index": "0",
-            "Color": "blue",
-            "Gain": 1,
-            "Offset": 0,
-            "Multiplier": 1,
-            "Type": 2
-        }
-    ],
-    "Alarms": [],
-    "Enterprises": [
-        {
-            "Name": "Enterprise 1",
-            "ManagerId": 2,
-            "MaxUsers": 10,
-            "MaxPanels": 100
-        }
-    ],
-    "Users": [
-        {
-            "Name": "user",
-            "Email": "user@user.com",
-            "UserName": "user",
-            "Password": "user",
-            "UserType": 1
-        }
-    ]
+  "Gateways": [
+    { "GatewayId": "1C69209DFC01" },
+    { "GatewayId": "1C69209DFC02" },
+    { "GatewayId": "1C69209DFC03" }
+  ],
+  "Groups": [
+    { "Name": "Câmera 1", "EnterpriseId": 1 }
+  ],
+  "Panels": [
+    {
+      "Name": "Armazem A",
+      "GatewayId": "1C69209DFC01",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "red",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 2
+    },
+    {
+      "Name": "Frigorifico B",
+      "GatewayId": "1C69209DFC02",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "green",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 2
+    },
+    {
+      "Name": "Frigorifico C",
+      "GatewayId": "1C69209DFC03",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "blue",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 2
+    }
+  ],
+  "Alarms": [],
+  "Enterprises": [
+    {
+      "Name": "Enterprise 1",
+      "ManagerId": 2,
+      "MaxUsers": 10,
+      "MaxPanels": 100
+    }
+  ],
+  "Users": [
+    {
+      "Name": "user",
+      "Email": "user@user.com",
+      "UserName": "user",
+      "Password": "user",
+      "UserType": 1
+    }
+  ]
 }

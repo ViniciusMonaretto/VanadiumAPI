@@ -1,6 +1,7 @@
 using Data.Sqlite;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Models;
+using VanadiumAPI.DTO;
 using VanadiumAPI.Services;
 
 namespace VanadiumAPI.Controllers
@@ -10,12 +11,12 @@ namespace VanadiumAPI.Controllers
     public class PanelInfoController : ControllerBase
     {
         private readonly IPanelInfoRepository _repository;
-        private readonly IPanelBroadcastService _broadcastService;
+        private readonly IHubBroadcastService _broadcastService;
         private readonly ILogger<PanelInfoController> _logger;
 
         public PanelInfoController(
             IPanelInfoRepository repository,
-            IPanelBroadcastService broadcastService,
+            IHubBroadcastService broadcastService,
             ILogger<PanelInfoController> logger)
         {
             _repository = repository;
@@ -27,7 +28,7 @@ namespace VanadiumAPI.Controllers
         {
             try
             {
-                await _broadcastService.BroadcastPanelChange(new PanelChangeMessage { Action = action, Panel = panel });
+                await _broadcastService.BroadcastPanelChange(action, new PanelDto(panel));
             }
             catch (Exception ex)
             {

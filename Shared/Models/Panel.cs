@@ -17,6 +17,7 @@ namespace Shared.Models
         public int Id { get; set; }
         public string Name { get; set; }
         public string GatewayId { get; set; }
+        public Gateway Gateway { get; set; }
         public int GroupId { get; set; }
         public Group Group { get; set; }
         public string Index { get; set; }

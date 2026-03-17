@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using Data.Mongo;
 using Data.Sqlite;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -84,10 +85,21 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISensorInfoService, LocalSensorInfoService>();
 builder.Services.AddScoped<IPanelReadingService, PanelReadingService>();
-builder.Services.AddSingleton<IPanelBroadcastService, PanelBroadcastService>();
+builder.Services.AddScoped<IPanelService, PanelService>();
+builder.Services.AddSingleton<IHubBroadcastService, HubBroadcastService>();
+builder.Services.AddSingleton<IGatewayServerService, GatewayServerService>();
 
-// SignalR
-builder.Services.AddSignalR();
+// SignalR (detailed errors to client only in Development — never in Production)
+builder.Services.AddSignalR(options =>
+{
+    if (builder.Environment.IsDevelopment())
+        options.EnableDetailedErrors = true;
+}).AddJsonProtocol(options =>
+{
+    // Frontend often sends type: "temperature" | 0 — default STJ only accepts numbers for enums
+    options.PayloadSerializerOptions.Converters.Add(
+        new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase, allowIntegerValues: true));
+});
 
 // Controllers + Swagger
 builder.Services.AddControllers()
@@ -135,6 +147,10 @@ using (var scope = app.Services.CreateScope())
     var initializer = scope.ServiceProvider.GetRequiredService<MongoDbInitializer>();
     await initializer.InitializeAsync();
 }
+
+// Gateway store: load all gateways from repo at startup
+var gatewayServer = app.Services.GetRequiredService<IGatewayServerService>();
+await gatewayServer.InitializeStoreAsync();
 
 app.UseCors("AllowAngular");
 
