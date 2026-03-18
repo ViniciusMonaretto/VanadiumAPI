@@ -20,5 +20,8 @@ namespace VanadiumAPI.Services
         Task BroadcastPanelRemoved(int enterpriseId, int panelId);
         void AddPanel(int enterpriseId, int panelId, string gatewayId);
         void RemovePanel(int panelId, string gatewayId);
+        Task BroadcastGroupCreated(int enterpriseId, GroupDto groupDto);
+        Task BroadcastGroupUpdated(int enterpriseId, GroupDto groupDto);
+        Task BroadcastGroupRemoved(int enterpriseId, int groupId);
     }
 }

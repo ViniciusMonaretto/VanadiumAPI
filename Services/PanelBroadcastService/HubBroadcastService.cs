@@ -160,5 +160,23 @@ namespace VanadiumAPI.Services
             foreach (var connectionId in connections.ToList())
                 UnsubscribeFromPanel(connectionId, panelId, gatewayId);
         }
+
+        public async Task BroadcastGroupCreated(int enterpriseId, GroupDto groupDto)
+        {
+            if (_enterpriseConnections.TryGetValue(enterpriseId, out var connections) && connections.Any())
+                await _hubContext.Clients.Clients(connections.ToList()).SendAsync("GroupCreated", groupDto);
+        }
+
+        public async Task BroadcastGroupUpdated(int enterpriseId, GroupDto groupDto)
+        {
+            if (_enterpriseConnections.TryGetValue(enterpriseId, out var connections) && connections.Any())
+                await _hubContext.Clients.Clients(connections.ToList()).SendAsync("GroupUpdated", groupDto);
+        }
+
+        public async Task BroadcastGroupRemoved(int enterpriseId, int groupId)
+        {
+            if (_enterpriseConnections.TryGetValue(enterpriseId, out var connections) && connections.Any())
+                await _hubContext.Clients.Clients(connections.ToList()).SendAsync("GroupRemoved", groupId);
+        }
     }
 }

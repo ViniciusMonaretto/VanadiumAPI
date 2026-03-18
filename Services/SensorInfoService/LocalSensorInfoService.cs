@@ -43,6 +43,44 @@ namespace VanadiumAPI.Services
 
         public Task<Group?> GetGroupByIdAsync(int id) => _panelRepo.GetGroupById(id);
 
+        public async Task<Group?> CreateGroupAsync(string name, int enterpriseId)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return null;
+            var enterprise = await _context.Enterprises.FindAsync(enterpriseId);
+            if (enterprise == null) return null;
+            var group = new Group
+            {
+                Name = name.Trim(),
+                EnterpriseId = enterpriseId,
+                Panels = new List<Panel>()
+            };
+            _context.Groups.Add(group);
+            if (await _context.SaveChangesAsync() <= 0) return null;
+            return await _panelRepo.GetGroupById(group.Id);
+        }
+
+        public async Task<(Group? Group, string? Error)> UpdateGroupAsync(int groupId, string name, int enterpriseId)
+        {
+            var group = await _panelRepo.GetGroupById(groupId);
+            if (group == null) return (null, "Grupo não encontrado");
+            if (group.EnterpriseId != enterpriseId) return (null, "Grupo não pertence à empresa selecionada");
+            if (string.IsNullOrWhiteSpace(name)) return (null, "Nome inválido");
+            group.Name = name.Trim();
+            _context.Groups.Update(group);
+            if (await _context.SaveChangesAsync() <= 0) return (null, "Falha ao atualizar grupo");
+            return (await _panelRepo.GetGroupById(groupId), null);
+        }
+
+        public async Task<(bool Success, string? Error)> DeleteGroupAsync(int groupId, int enterpriseId)
+        {
+            var group = await _panelRepo.GetGroupById(groupId);
+            if (group == null) return (false, "Grupo não encontrado");
+            if (group.EnterpriseId != enterpriseId) return (false, "Grupo não pertence à empresa selecionada");
+            _context.Groups.Remove(group);
+            if (await _context.SaveChangesAsync() <= 0) return (false, "Falha ao remover grupo");
+            return (true, null);
+        }
+
         public async Task<IEnumerable<UserInfo>> GetManagedUsersAsync(string token)
         {
             var userId = GetUserIdFromToken(token);

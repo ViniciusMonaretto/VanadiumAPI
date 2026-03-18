@@ -12,6 +12,9 @@ namespace VanadiumAPI.Services
         Task<IEnumerable<AlarmEvent>> GetAllAlarmEventsAsync();
         Task<IEnumerable<Group>> GetAllGroupsAsync(int? enterpriseId);
         Task<Group?> GetGroupByIdAsync(int id);
+        Task<Group?> CreateGroupAsync(string name, int enterpriseId);
+        Task<(Group? Group, string? Error)> UpdateGroupAsync(int groupId, string name, int enterpriseId);
+        Task<(bool Success, string? Error)> DeleteGroupAsync(int groupId, int enterpriseId);
         Task<IEnumerable<UserInfo>> GetManagedUsersAsync(string token);
         Task<UserInfo?> CreateManagedUserAsync(CreateManagedUserDto dto, string token);
         Task<bool> DeleteManagedUserAsync(int userId, string token);

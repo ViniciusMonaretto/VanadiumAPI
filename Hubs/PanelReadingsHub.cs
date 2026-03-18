@@ -393,5 +393,91 @@ namespace VanadiumAPI.Hubs
             }
             return success;
         }
+
+        /// <summary>Create a group in the enterprise from the connection (after SetSelectedEnterprise). Notifies all clients on that enterprise via GroupCreated.</summary>
+        public async Task<GroupDto?> AddGroup(CreateGroupDto dto, string token)
+        {
+            var (isValid, _, userType) = await ValidateTokenAndGetUserContextAsync(token);
+            if (!isValid) return null;
+            if (userType != UserType.Admin && userType != UserType.Manager)
+            {
+                await Clients.Caller.SendAsync("Error", "Apenas gerentes ou administradores podem criar grupos");
+                return null;
+            }
+            var enterpriseId = _broadcastService.GetConnectionEnterpriseId(Context.ConnectionId);
+            if (enterpriseId == null)
+            {
+                await Clients.Caller.SendAsync("Error", "Selecione uma empresa antes de criar um grupo");
+                return null;
+            }
+            var group = await _sensorInfoService.CreateGroupAsync(dto?.Name ?? string.Empty, enterpriseId.Value);
+            if (group == null)
+            {
+                await Clients.Caller.SendAsync("Error", "Não foi possível criar o grupo (nome inválido ou empresa inexistente)");
+                return null;
+            }
+            var groupDto = new GroupDto(group);
+            await _broadcastService.BroadcastGroupCreated(enterpriseId.Value, groupDto);
+            return groupDto;
+        }
+
+        public async Task<GroupDto?> UpdateGroup(UpdateGroupDto dto, string token)
+        {
+            var (isValid, _, userType) = await ValidateTokenAndGetUserContextAsync(token);
+            if (!isValid) return null;
+            if (userType != UserType.Admin && userType != UserType.Manager)
+            {
+                await Clients.Caller.SendAsync("Error", "Apenas gerentes ou administradores podem atualizar grupos");
+                return null;
+            }
+            var enterpriseId = _broadcastService.GetConnectionEnterpriseId(Context.ConnectionId);
+            if (enterpriseId == null)
+            {
+                await Clients.Caller.SendAsync("Error", "Selecione uma empresa antes de atualizar um grupo");
+                return null;
+            }
+            var (group, error) = await _sensorInfoService.UpdateGroupAsync(dto.Id, dto.Name ?? string.Empty, enterpriseId.Value);
+            if (error != null || group == null)
+            {
+                await Clients.Caller.SendAsync("Error", error ?? "Falha ao atualizar grupo");
+                return null;
+            }
+            var groupDto = new GroupDto(group);
+            await _broadcastService.BroadcastGroupUpdated(enterpriseId.Value, groupDto);
+            return groupDto;
+        }
+
+        public async Task<bool> RemoveGroup(int groupId, string token)
+        {
+            var (isValid, _, userType) = await ValidateTokenAndGetUserContextAsync(token);
+            if (!isValid) return false;
+            if (userType != UserType.Admin && userType != UserType.Manager)
+            {
+                await Clients.Caller.SendAsync("Error", "Apenas gerentes ou administradores podem remover grupos");
+                return false;
+            }
+            var enterpriseId = _broadcastService.GetConnectionEnterpriseId(Context.ConnectionId);
+            if (enterpriseId == null)
+            {
+                await Clients.Caller.SendAsync("Error", "Selecione uma empresa antes de remover um grupo");
+                return false;
+            }
+            var group = await _sensorInfoService.GetGroupByIdAsync(groupId);
+            if (group == null || group.EnterpriseId != enterpriseId.Value)
+            {
+                await Clients.Caller.SendAsync("Error", "Grupo não encontrado nesta empresa");
+                return false;
+            }
+            foreach (var p in group.Panels ?? Array.Empty<Panel>())
+                _broadcastService.RemovePanel(p.Id, p.GatewayId);
+            var (success, error) = await _sensorInfoService.DeleteGroupAsync(groupId, enterpriseId.Value);
+            if (error != null)
+            {
+                await Clients.Caller.SendAsync("Error", error);
+                return false;
+            }
+            await _broadcastService.BroadcastGroupRemoved(enterpriseId.Value, groupId);
+            return success;
+        }
     }
 }
