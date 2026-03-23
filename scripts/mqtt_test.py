@@ -121,6 +121,11 @@ client.loop_start()
 client.subscribe("iocloud/request/#")
 
 try:
+    count = 0
+    for sensor in base_sensors:
+        send_gateway_status(client, f"iocloud/response/1C69209DFC0{1 + count}/command")
+        count += 1
+
     while True:
         sensors = []
         count = 0

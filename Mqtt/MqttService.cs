@@ -129,6 +129,7 @@ namespace VanadiumAPI.Mqtt
                 };
                 _sensorDataSaver.PushSensorData(msg);
                 _ = _broadcastService.BroadcastSensorData(msg);
+                _ = _gatewayServer.UpdateGatewayLastActivityAsync(gatewayId);
             }
             else if (command == "command" || command == "system")
             {

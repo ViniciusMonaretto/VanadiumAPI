@@ -149,6 +149,7 @@ namespace VanadiumAPI.Services
             }
 
             systemData.IsConnected = true;
+            systemData.LastActivity = new DateTime(DateTime.UtcNow.Ticks, DateTimeKind.Utc);
             var enterpriseId = gateway.EnterpriseId;
             var perEnterprise = _store.AddOrUpdate(
                 enterpriseId,
@@ -157,6 +158,29 @@ namespace VanadiumAPI.Services
             perEnterprise[gatewayId] = systemData;
 
             await _hubBroadcast.BroadcastGatewaySystemInfo(enterpriseId, systemData);
+        }
+
+        public async Task UpdateGatewayLastActivityAsync(string gatewayId)
+        {
+            Gateway? gateway;
+            using (var scope = _provider.CreateScope())
+            {
+                var repo = scope.ServiceProvider.GetRequiredService<IPanelInfoRepository>();
+                gateway = await repo.GetGatewayByGatewayIdAsync(gatewayId);
+            }
+
+            if (gateway == null)
+            {
+                _logger.LogDebug("Gateway not found in database: {GatewayId}", gatewayId);
+                return;
+            }
+
+            var enterpriseId = gateway.EnterpriseId;
+            var perEnterprise = _store.AddOrUpdate(
+                enterpriseId,
+                _ => new ConcurrentDictionary<string, SystemMessageModel>(),
+                (_, d) => d);
+            perEnterprise[gatewayId].LastActivity = new DateTime(DateTime.UtcNow.Ticks, DateTimeKind.Utc);
         }
 
         public async Task<IReadOnlyDictionary<string, SystemMessageModel>> GetGatewayInfoByEnterpriseAsync(int enterpriseId)

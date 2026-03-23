@@ -50,6 +50,7 @@ namespace Shared.Models
         public string GatewayId { get; set; } = string.Empty;
         public DateTime? Uptime { get; set; }
         public string? IpAddress { get; set; }
+        public DateTime? LastActivity { get; set; }
         public bool IsConnected { get; set; }
     }
 

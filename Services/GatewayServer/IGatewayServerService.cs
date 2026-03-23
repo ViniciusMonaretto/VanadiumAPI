@@ -11,6 +11,7 @@ namespace VanadiumAPI.Services
         Task AddGatewayToStoreAsync(int enterpriseId, string gatewayId);
         Task RemoveGatewayFromStoreAsync(int enterpriseId, string gatewayId);
         Task AddGatewaySystemInfoAsync(string gatewayId, SystemMessageModel systemData);
+        Task UpdateGatewayLastActivityAsync(string gatewayId);
         Task<IReadOnlyDictionary<string, SystemMessageModel>> GetGatewayInfoByEnterpriseAsync(int enterpriseId);
     }
 }
