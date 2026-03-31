@@ -15,6 +15,15 @@ namespace VanadiumAPI.DTO
         public int Multiplier { get; set; }
         public PanelType Type { get; set; }
         public List<AlarmDto> Alarms { get; set; } = new List<AlarmDto>();
+        /// <summary>Time of the last in-memory sample for this panel (MQTT pipeline).</summary>
+        public DateTime? LastReadingTime { get; set; }
+        /// <summary>Value of the last in-memory sample for this panel (MQTT pipeline).</summary>
+        public float? Value { get; set; }
+        /// <summary>Active flag from the last in-memory sample (MQTT <c>active</c>); null if none received yet.</summary>
+        public bool? Active { get; set; }
+        public int DisplayedType { get; set; }
+        /// <summary>Flow aggregates from Mongo; null for non-flow panels.</summary>
+        public FlowConsumptionDto? FlowConsumption { get; set; }
 
         public PanelDto(Panel panel)
         {
@@ -28,6 +37,7 @@ namespace VanadiumAPI.DTO
             Offset = panel.Offset;
             Multiplier = panel.Multiplier;
             Type = panel.Type;
+            DisplayedType = panel.DisplayedType;
             Alarms = panel.Alarms?.Select(a => new AlarmDto(a)).ToList() ?? new List<AlarmDto>();
         }
 

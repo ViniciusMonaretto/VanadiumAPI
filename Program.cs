@@ -96,6 +96,7 @@ builder.Services.AddSignalR(options =>
         options.EnableDetailedErrors = true;
 }).AddJsonProtocol(options =>
 {
+    options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     // Frontend often sends type: "temperature" | 0 — default STJ only accepts numbers for enums
     options.PayloadSerializerOptions.Converters.Add(
         new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase, allowIntegerValues: true));

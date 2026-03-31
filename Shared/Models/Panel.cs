@@ -27,5 +27,6 @@ namespace Shared.Models
         public int Multiplier { get; set; }
         public PanelType Type { get; set; }
         public ICollection<Alarm> Alarms { get; set; }
+        public int DisplayedType { get; set; }
     }
 }

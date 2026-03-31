@@ -361,6 +361,7 @@ namespace SensorDataSaver
                 PanelId = panel.Id,
                 ReadingTime = timestamp,
                 Value = sensor.Value,
+                Active = sensor.Active,
             };
 
             _lastPanelReadings.AddOrUpdate(panel.Id, panelReading, (key, existing) => panelReading);

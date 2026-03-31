@@ -14,5 +14,7 @@ namespace VanadiumAPI.DTO
             Name = group.Name;
             Panels = group.Panels?.Select(p => new PanelDto(p)).ToList() ?? new List<PanelDto>();
         }
+
+        public GroupDto() { }
     }
 }

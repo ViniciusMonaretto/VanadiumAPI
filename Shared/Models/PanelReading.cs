@@ -11,5 +11,6 @@ namespace Shared.Models
         public int PanelId {get; set;}
         public DateTime ReadingTime {get; set;}
         public float Value {get; set;}
+        public bool Active { get; set; }
     }
 }

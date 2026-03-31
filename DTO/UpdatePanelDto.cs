@@ -8,5 +8,6 @@ namespace VanadiumAPI.DTO
         public float? Gain { get; set; }
         public float? Offset { get; set; }
         public int? Multiplier { get; set; }
+        public int? DisplayedType { get; set; }
     }
 }

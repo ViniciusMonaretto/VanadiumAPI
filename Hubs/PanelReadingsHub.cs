@@ -4,6 +4,7 @@ using Shared.Models;
 using VanadiumAPI.DTO;
 using VanadiumAPI.DTOs;
 using VanadiumAPI.Services;
+using VanadiumAPI.SensorDataSaver;
 using LoginDto = VanadiumAPI.DTOs.LoginDto;
 
 namespace VanadiumAPI.Hubs
@@ -16,6 +17,7 @@ namespace VanadiumAPI.Hubs
         private readonly IHubBroadcastService _broadcastService;
         private readonly IGatewayServerService _gatewayServer;
         private readonly IPanelService _panelService;
+        private readonly ISensorDataSaver _sensorDataSaver;
         private readonly ILogger<PanelReadingsHub> _logger;
 
         public PanelReadingsHub(
@@ -25,6 +27,7 @@ namespace VanadiumAPI.Hubs
             IHubBroadcastService broadcastService,
             IGatewayServerService gatewayServer,
             IPanelService panelService,
+            ISensorDataSaver sensorDataSaver,
             ILogger<PanelReadingsHub> logger)
         {
             _sensorInfoService = sensorInfoService;
@@ -33,6 +36,7 @@ namespace VanadiumAPI.Hubs
             _broadcastService = broadcastService;
             _gatewayServer = gatewayServer;
             _panelService = panelService;
+            _sensorDataSaver = sensorDataSaver;
             _logger = logger;
         }
 
@@ -150,7 +154,38 @@ namespace VanadiumAPI.Hubs
             if (!isValid) return new Dictionary<string, GroupDto>();
             var groups = await _sensorInfoService.GetAllGroupsAsync(enterprise.EnterpriseId);
             _broadcastService.SetUserPanels(Context.ConnectionId, userId, enterprise.EnterpriseId, groups.SelectMany(g => g.Panels.Select(p => (p.Id, p.GatewayId))).ToList());
-            return groups.ToDictionary(g => g.Id.ToString(), g => new GroupDto(g));
+            var panelIds = groups.SelectMany(g => g.Panels ?? Array.Empty<Panel>()).Select(p => p.Id).ToArray();
+            var flowByPanel = panelIds.Length == 0
+                ? new Dictionary<int, List<FlowConsumption>>()
+                : await _panelReadingService.GetFlowConsumptionsOfPanelsAsync(panelIds);
+            return groups.ToDictionary(
+                g => g.Id.ToString(),
+                g => new GroupDto
+                {
+                    Id = g.Id,
+                    Name = g.Name,
+                    Panels = (g.Panels ?? Array.Empty<Panel>()).Select(p => BuildPanelDtoForEnterprise(p, flowByPanel)).ToList()
+                });
+        }
+
+        private PanelDto BuildPanelDtoForEnterprise(Panel panel, IReadOnlyDictionary<int, List<FlowConsumption>> flowByPanel)
+        {
+            var dto = new PanelDto(panel);
+            var last = _sensorDataSaver.GetLastPanelReading(panel.Id);
+            if (last != null)
+            {
+                dto.LastReadingTime = last.ReadingTime;
+                dto.Value = last.Value;
+                dto.Active = last.Active;
+            }
+            if (panel.Type == PanelType.Flow
+                && flowByPanel.TryGetValue(panel.Id, out var fcList)
+                && fcList is { Count: > 0 })
+            {
+                dto.FlowConsumption = FlowConsumptionDto.FromModel(fcList[0]);;
+            }
+                
+            return dto;
         }
 
         public async Task<IReadOnlyDictionary<string, SystemMessageModel>> GetGatewayInfo(string token)

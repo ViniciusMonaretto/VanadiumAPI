@@ -192,14 +192,21 @@ namespace VanadiumAPI.SensorDataSaver
                 PanelId = panel.Id,
                 ReadingTime = timestamp,
                 Value = sensor.Value,
+                Active = sensor.Active,
             };
 
             if (ShouldSaveNow(panel))
+            {
+                _lastPanelReadings.AddOrUpdate(panel.Id, panelReading, (_, _) => panelReading);
                 return (panelReading, true);
+            }
 
             _lastPanelReadings.AddOrUpdate(panel.Id, panelReading, (_, _) => panelReading);
             return (panelReading, false);
         }
+
+        public PanelReading? GetLastPanelReading(int panelId) =>
+            _lastPanelReadings.TryGetValue(panelId, out var reading) ? reading : null;
 
         public void AddPanel(Panel panel)
         {
