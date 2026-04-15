@@ -3,6 +3,7 @@ using Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
 using VanadiumAPI.DTO;
+using VanadiumAPI.Services.AlarmRegistry;
 
 namespace VanadiumAPI.Services
 {
@@ -11,25 +12,30 @@ namespace VanadiumAPI.Services
         private readonly IPanelInfoRepository _panelRepo;
         private readonly SqliteDataContext _context;
         private readonly IAuthService _authService;
+        private readonly IAlarmRegistryService _alarmRegistry;
         private readonly ILogger<LocalSensorInfoService> _logger;
 
         public LocalSensorInfoService(
             IPanelInfoRepository panelRepo,
             SqliteDataContext context,
             IAuthService authService,
+            IAlarmRegistryService alarmRegistry,
             ILogger<LocalSensorInfoService> logger)
         {
             _panelRepo = panelRepo;
             _context = context;
             _authService = authService;
+            _alarmRegistry = alarmRegistry;
             _logger = logger;
         }
 
         public Task<IEnumerable<Panel>> GetAllPanelsAsync() => _panelRepo.GetAllPanels();
         public Task<Panel?> GetPanelByIdAsync(int id) => _panelRepo.GetPanelById(id);
-        public Task<IEnumerable<Alarm>> GetAllAlarmsAsync() => _panelRepo.GetAllAlarms();
-        public Task<Alarm?> GetAlarmByIdAsync(int id) => _panelRepo.GetAlarmById(id);
-        public Task<IEnumerable<AlarmEvent>> GetAllAlarmEventsAsync() => _panelRepo.GetAllAlarmEvents();
+        public async Task<IEnumerable<Alarm>> GetAllAlarmsAsync() => await _alarmRegistry.GetAllAlarmsAsync();
+
+        public async Task<Alarm?> GetAlarmByIdAsync(int id) => await _alarmRegistry.GetAlarmByIdAsync(id);
+
+        public async Task<IEnumerable<AlarmEvent>> GetAllAlarmEventsAsync() => await _alarmRegistry.GetAllAlarmEventsAsync();
 
         public async Task<IEnumerable<Group>> GetAllGroupsAsync(int? enterpriseId)
         {

@@ -178,5 +178,11 @@ namespace VanadiumAPI.Services
             if (_enterpriseConnections.TryGetValue(enterpriseId, out var connections) && connections.Any())
                 await _hubContext.Clients.Clients(connections.ToList()).SendAsync("GroupRemoved", groupId);
         }
+
+        public async Task BroadcastAlarmEvent(int enterpriseId, AlarmEventDto alarmEvent)
+        {
+            if (_enterpriseConnections.TryGetValue(enterpriseId, out var connections) && connections.Any())
+                await _hubContext.Clients.Clients(connections.ToList()).SendAsync("AlarmEventReceived", alarmEvent);
+        }
     }
 }

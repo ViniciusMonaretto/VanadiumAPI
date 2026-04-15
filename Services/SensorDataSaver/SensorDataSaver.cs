@@ -4,6 +4,7 @@ using System.Threading.Channels;
 using Data.Mongo;
 using Data.Sqlite;
 using Microsoft.Extensions.Hosting;
+using VanadiumAPI.Services.AlarmRegistry;
 using Microsoft.Extensions.Logging;
 using Shared.Models;
 
@@ -16,14 +17,17 @@ namespace VanadiumAPI.SensorDataSaver
         private readonly ConcurrentDictionary<string, Panel> _panels = new();
         private readonly ILogger<SensorDataSaver> _logger;
         private readonly IServiceProvider _provider;
+        private readonly IAlarmRegistryService _alarmRegistry;
         private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
 
         public SensorDataSaver(
             ILogger<SensorDataSaver> logger,
-            IServiceProvider provider)
+            IServiceProvider provider,
+            IAlarmRegistryService alarmRegistry)
         {
             _logger = logger;
             _provider = provider;
+            _alarmRegistry = alarmRegistry;
         }
 
         public void PushSensorData(SensorDataMessageModel message)
@@ -198,10 +202,12 @@ namespace VanadiumAPI.SensorDataSaver
             if (ShouldSaveNow(panel))
             {
                 _lastPanelReadings.AddOrUpdate(panel.Id, panelReading, (_, _) => panelReading);
+                await _alarmRegistry.ProcessReadingForAlarmsAsync(panel, panelReading, CancellationToken.None);
                 return (panelReading, true);
             }
 
             _lastPanelReadings.AddOrUpdate(panel.Id, panelReading, (_, _) => panelReading);
+            await _alarmRegistry.ProcessReadingForAlarmsAsync(panel, panelReading, CancellationToken.None);
             return (panelReading, false);
         }
 

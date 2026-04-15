@@ -23,5 +23,6 @@ namespace VanadiumAPI.Services
         Task BroadcastGroupCreated(int enterpriseId, GroupDto groupDto);
         Task BroadcastGroupUpdated(int enterpriseId, GroupDto groupDto);
         Task BroadcastGroupRemoved(int enterpriseId, int groupId);
+        Task BroadcastAlarmEvent(int enterpriseId, AlarmEventDto alarmEvent);
     }
 }

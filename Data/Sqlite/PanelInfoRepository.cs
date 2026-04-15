@@ -40,7 +40,9 @@ namespace Data.Sqlite
         {
             if (_context.Entry(panel).State == EntityState.Detached)
                 _context.Panels.Update(panel);
-            return await _context.SaveChangesAsync() > 0;
+            // Zero writes is valid when no scalar property changed (e.g. only alarm patches in the same request).
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<bool> DeletePanelAsync(Panel panel)
@@ -50,7 +52,7 @@ namespace Data.Sqlite
         }
 
         public async Task<Panel?> GetPanelByGatewayAndIndexAsync(string gatewayId, string index) =>
-            await _context.Panels.Include(p => p.Alarms).FirstOrDefaultAsync(p => p.GatewayId == gatewayId && p.Index == index);
+            await _context.Panels.FirstOrDefaultAsync(p => p.GatewayId == gatewayId && p.Index == index);
 
         public async Task<IEnumerable<Group>> GetAllGroups() =>
             await _context.Groups

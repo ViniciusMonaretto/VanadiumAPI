@@ -1,6 +1,7 @@
 using Data.Sqlite;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Models;
+using VanadiumAPI.Services.AlarmRegistry;
 
 namespace VanadiumAPI.Controllers
 {
@@ -9,27 +10,32 @@ namespace VanadiumAPI.Controllers
     public class AlarmsController : ControllerBase
     {
         private readonly IPanelInfoRepository _repository;
+        private readonly IAlarmRegistryService _alarmRegistry;
 
-        public AlarmsController(IPanelInfoRepository repository) => _repository = repository;
+        public AlarmsController(IPanelInfoRepository repository, IAlarmRegistryService alarmRegistry)
+        {
+            _repository = repository;
+            _alarmRegistry = alarmRegistry;
+        }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Alarm>>> GetAllAlarms()
+        public async Task<ActionResult<IEnumerable<Alarm>>> GetAllAlarms(CancellationToken cancellationToken)
         {
-            try { return Ok(await _repository.GetAllAlarms()); }
+            try { return Ok(await _alarmRegistry.GetAllAlarmsAsync(cancellationToken)); }
             catch (Exception ex) { return StatusCode(500, new { message = "Error retrieving alarms", error = ex.Message }); }
         }
 
         [HttpGet("events")]
-        public async Task<ActionResult<IEnumerable<AlarmEvent>>> GetAllAlarmEvents()
+        public async Task<ActionResult<IEnumerable<AlarmEvent>>> GetAllAlarmEvents(CancellationToken cancellationToken)
         {
-            try { return Ok(await _repository.GetAllAlarmEvents()); }
+            try { return Ok(await _alarmRegistry.GetAllAlarmEventsAsync(cancellationToken)); }
             catch (Exception ex) { return StatusCode(500, new { message = "Error retrieving alarm events", error = ex.Message }); }
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Alarm>> GetAlarmById(int id)
+        public async Task<ActionResult<Alarm>> GetAlarmById(int id, CancellationToken cancellationToken)
         {
-            var alarm = await _repository.GetAlarmById(id);
+            var alarm = await _alarmRegistry.GetAlarmByIdAsync(id, cancellationToken);
             if (alarm == null) return NotFound(new { message = "Alarm not found" });
             return Ok(alarm);
         }
@@ -39,8 +45,28 @@ namespace VanadiumAPI.Controllers
         {
             if (alarm == null) return BadRequest(new { message = "Alarm data is required" });
             _repository.Add(alarm);
-            if (await _repository.SaveAll()) return CreatedAtAction(nameof(GetAlarmById), new { id = alarm.Id }, alarm);
-            return BadRequest(new { message = "Failed to create alarm" });
+            if (!await _repository.SaveAll()) return BadRequest(new { message = "Failed to create alarm" });
+            _alarmRegistry.NotifyAlarmCreated(alarm);
+            return CreatedAtAction(nameof(GetAlarmById), new { id = alarm.Id }, alarm);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult<Alarm>> UpdateAlarm(int id, [FromBody] Alarm body)
+        {
+            if (body == null) return BadRequest(new { message = "Alarm data is required" });
+            var existing = await _repository.GetAlarmById(id);
+            if (existing == null) return NotFound(new { message = "Alarm not found" });
+            if (body.Id != 0 && body.Id != id)
+                return BadRequest(new { message = "Route id and body id must match" });
+
+            existing.Threshold = body.Threshold;
+            existing.IsGreaterThan = body.IsGreaterThan;
+            if (body.PanelId > 0)
+                existing.PanelId = body.PanelId;
+
+            if (!await _repository.SaveAll()) return BadRequest(new { message = "Failed to update alarm" });
+            _alarmRegistry.NotifyAlarmUpdated(existing);
+            return Ok(existing);
         }
 
         [HttpDelete("{id}")]
@@ -49,8 +75,9 @@ namespace VanadiumAPI.Controllers
             var alarm = await _repository.GetAlarmById(id);
             if (alarm == null) return NotFound(new { message = "Alarm not found" });
             _repository.Delete(alarm);
-            if (await _repository.SaveAll()) return NoContent();
-            return BadRequest(new { message = "Failed to delete alarm" });
+            if (!await _repository.SaveAll()) return BadRequest(new { message = "Failed to delete alarm" });
+            _alarmRegistry.NotifyAlarmDeleted(id);
+            return NoContent();
         }
     }
 }

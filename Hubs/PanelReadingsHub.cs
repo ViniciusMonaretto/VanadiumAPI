@@ -2,8 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.SignalR;
 using Shared.Models;
 using VanadiumAPI.DTO;
-using VanadiumAPI.DTOs;
 using VanadiumAPI.Services;
+using VanadiumAPI.Services.AlarmRegistry;
 using VanadiumAPI.SensorDataSaver;
 using LoginDto = VanadiumAPI.DTOs.LoginDto;
 
@@ -18,7 +18,12 @@ namespace VanadiumAPI.Hubs
         private readonly IGatewayServerService _gatewayServer;
         private readonly IPanelService _panelService;
         private readonly ISensorDataSaver _sensorDataSaver;
+        private readonly IAlarmRegistryService _alarmRegistry;
         private readonly ILogger<PanelReadingsHub> _logger;
+
+        public const int EnterpriseAlarmsMaxCount = 100;
+        /// <summary>Max rows returned by <see cref="GetAllAlarmEvents"/> for the selected enterprise.</summary>
+        public const int EnterpriseAlarmEventsMaxCount = 100;
 
         public PanelReadingsHub(
             ISensorInfoService sensorInfoService,
@@ -28,6 +33,7 @@ namespace VanadiumAPI.Hubs
             IGatewayServerService gatewayServer,
             IPanelService panelService,
             ISensorDataSaver sensorDataSaver,
+            IAlarmRegistryService alarmRegistry,
             ILogger<PanelReadingsHub> logger)
         {
             _sensorInfoService = sensorInfoService;
@@ -37,6 +43,7 @@ namespace VanadiumAPI.Hubs
             _gatewayServer = gatewayServer;
             _panelService = panelService;
             _sensorDataSaver = sensorDataSaver;
+            _alarmRegistry = alarmRegistry;
             _logger = logger;
         }
 
@@ -140,12 +147,18 @@ namespace VanadiumAPI.Hubs
             return alarm != null ? new AlarmDto(alarm) : null;
         }
 
+
+        /// <summary>
+        /// Returns up to <see cref="EnterpriseAlarmEventsMaxCount"/> alarm events for the connection's selected enterprise (via <see cref="SetSelectedEnterprise"/>), newest first.
+        /// </summary>
         public async Task<IEnumerable<AlarmEventDto>> GetAllAlarmEvents(string token)
         {
             var (isValid, _) = await ValidateTokenAndGetUserIdAsync(token);
             if (!isValid) return Enumerable.Empty<AlarmEventDto>();
-            var alarmEvents = await _sensorInfoService.GetAllAlarmEventsAsync();
-            return alarmEvents?.Where(ae => ae != null).Select(ae => new AlarmEventDto(ae!)).ToList() ?? Enumerable.Empty<AlarmEventDto>();
+            var enterpriseId = _broadcastService.GetConnectionEnterpriseId(Context.ConnectionId);
+            if (enterpriseId == null) return Enumerable.Empty<AlarmEventDto>();
+            var events = await _alarmRegistry.GetAlarmEventsForEnterpriseAsync(enterpriseId.Value, EnterpriseAlarmEventsMaxCount);
+            return events.Select(e => new AlarmEventDto(e));
         }
 
         public async Task<Dictionary<string, GroupDto>> SetSelectedEnterprise(SetEnterpriseDto enterprise, string token)
