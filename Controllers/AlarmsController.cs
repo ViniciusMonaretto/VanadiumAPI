@@ -61,6 +61,7 @@ namespace VanadiumAPI.Controllers
 
             existing.Threshold = body.Threshold;
             existing.IsGreaterThan = body.IsGreaterThan;
+            existing.Severity = body.Severity;
             if (body.PanelId > 0)
                 existing.PanelId = body.PanelId;
 

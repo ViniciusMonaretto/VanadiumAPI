@@ -49,7 +49,7 @@ namespace VanadiumAPI.Services.AlarmRegistry
             foreach (var row in alarmRows)
             {
                 var a = row.a;
-                var rule = new AlarmRule(a.Id, a.PanelId, a.Threshold, a.IsGreaterThan, row.EnterpriseId);
+                var rule = new AlarmRule(a.Id, a.PanelId, a.Threshold, a.IsGreaterThan, row.EnterpriseId, a.Severity);
                 byId[a.Id] = rule;
                 if (!byPanel.TryGetValue(a.PanelId, out var list))
                 {
@@ -120,6 +120,7 @@ namespace VanadiumAPI.Services.AlarmRegistry
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<SqliteDataContext>();
             return await db.AlarmEvents.AsNoTracking()
+                .Include(e => e.Alarm)
                 .OrderByDescending(e => e.EventTime)
                 .ToListAsync(cancellationToken);
         }
@@ -153,7 +154,7 @@ namespace VanadiumAPI.Services.AlarmRegistry
 
             return alarmRows
                 .Select(row => ToAlarm(
-                    new AlarmRule(row.a.Id, row.a.PanelId, row.a.Threshold, row.a.IsGreaterThan, row.EnterpriseId),
+                    new AlarmRule(row.a.Id, row.a.PanelId, row.a.Threshold, row.a.IsGreaterThan, row.EnterpriseId, row.a.Severity),
                     byAlarmId.TryGetValue(row.a.Id, out var evs) ? evs : new List<AlarmEvent>()))
                 .ToList();
         }
@@ -166,15 +167,25 @@ namespace VanadiumAPI.Services.AlarmRegistry
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<SqliteDataContext>();
 
-            return await (
+            var ids = await (
                 from ev in db.AlarmEvents.AsNoTracking()
                 join a in db.Alarms.AsNoTracking() on ev.AlarmId equals a.Id
                 join p in db.Panels.AsNoTracking() on a.PanelId equals p.Id
                 join g in db.Groups.AsNoTracking() on p.GroupId equals g.Id
                 where g.EnterpriseId == enterpriseId
                 orderby ev.EventTime descending
-                select ev
+                select ev.Id
             ).Take(maxEvents).ToListAsync(cancellationToken);
+
+            if (ids.Count == 0)
+                return Array.Empty<AlarmEvent>();
+
+            var events = await db.AlarmEvents.AsNoTracking()
+                .Include(e => e.Alarm)
+                .Where(e => ids.Contains(e.Id))
+                .ToListAsync(cancellationToken);
+
+            return events.OrderByDescending(e => e.EventTime).ToList();
         }
 
         public void NotifyAlarmCreated(Alarm alarm)
@@ -183,7 +194,7 @@ namespace VanadiumAPI.Services.AlarmRegistry
             var enterpriseId = ResolveEnterpriseIdForPanel(alarm.PanelId);
             if (enterpriseId <= 0)
                 _logger.LogWarning("Could not resolve EnterpriseId for new alarm {AlarmId} on panel {PanelId}", alarm.Id, alarm.PanelId);
-            var rule = new AlarmRule(alarm.Id, alarm.PanelId, alarm.Threshold, alarm.IsGreaterThan, enterpriseId);
+            var rule = new AlarmRule(alarm.Id, alarm.PanelId, alarm.Threshold, alarm.IsGreaterThan, enterpriseId, alarm.Severity);
             lock (_sync)
             {
                 _rulesById[alarm.Id] = rule;
@@ -219,7 +230,7 @@ namespace VanadiumAPI.Services.AlarmRegistry
             if (enterpriseId <= 0)
                 enterpriseId = oldRule.EnterpriseId;
 
-            var newRule = new AlarmRule(alarm.Id, alarm.PanelId, alarm.Threshold, alarm.IsGreaterThan, enterpriseId);
+            var newRule = new AlarmRule(alarm.Id, alarm.PanelId, alarm.Threshold, alarm.IsGreaterThan, enterpriseId, alarm.Severity);
 
             lock (_sync)
             {
@@ -312,6 +323,7 @@ namespace VanadiumAPI.Services.AlarmRegistry
                 PanelId = rule.PanelId,
                 Threshold = rule.Threshold,
                 IsGreaterThan = rule.IsGreaterThan,
+                Severity = rule.Severity,
                 AlarmEvents = events
             };
 
@@ -350,7 +362,7 @@ namespace VanadiumAPI.Services.AlarmRegistry
                 await db.SaveChangesAsync(cancellationToken);
 
                 if (rule.EnterpriseId > 0)
-                    await _hubBroadcast.BroadcastAlarmEvent(rule.EnterpriseId, new AlarmEventDto(ev));
+                    await _hubBroadcast.BroadcastAlarmEvent(rule.EnterpriseId, new AlarmEventDto(ev, alarmSeverity: rule.Severity));
 
                 return true;
             }
@@ -364,6 +376,6 @@ namespace VanadiumAPI.Services.AlarmRegistry
         private static bool Evaluate(AlarmRule rule, float value) =>
             rule.IsGreaterThan ? value > rule.Threshold : value < rule.Threshold;
 
-        private readonly record struct AlarmRule(int Id, int PanelId, float Threshold, bool IsGreaterThan, int EnterpriseId);
+        private readonly record struct AlarmRule(int Id, int PanelId, float Threshold, bool IsGreaterThan, int EnterpriseId, AlarmSeverity Severity);
     }
 }

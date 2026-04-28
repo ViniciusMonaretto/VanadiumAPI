@@ -19,6 +19,8 @@ namespace VanadiumAPI.DTO
         public float? MaxAlarm { get; set; }
         /// <summary>Latest low-threshold alarm for this panel (value below threshold triggers), if any.</summary>
         public float? MinAlarm { get; set; }
+
+        public int? Severity { get; set; }
         /// <summary>Time of the last in-memory sample for this panel (MQTT pipeline).</summary>
         public DateTime? LastReadingTime { get; set; }
         /// <summary>Value of the last in-memory sample for this panel (MQTT pipeline).</summary>
@@ -45,6 +47,7 @@ namespace VanadiumAPI.DTO
             Alarms = panel.Alarms?.Select(a => new AlarmDto(a)).ToList() ?? new List<AlarmDto>();
             MaxAlarm = panel.Alarms?.Where(a => a.IsGreaterThan).OrderByDescending(a => a.Id).FirstOrDefault()?.Threshold;
             MinAlarm = panel.Alarms?.Where(a => !a.IsGreaterThan).OrderByDescending(a => a.Id).FirstOrDefault()?.Threshold;
+            Severity = (int?)panel.Alarms?.FirstOrDefault()?.Severity;
         }
 
         public PanelDto() { }

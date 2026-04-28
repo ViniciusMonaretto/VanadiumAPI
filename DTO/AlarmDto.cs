@@ -8,6 +8,7 @@ namespace VanadiumAPI.DTO
         public int PanelId { get; set; }
         public float Threshold { get; set; }
         public bool IsGreaterThan { get; set; }
+        public AlarmSeverity Severity { get; set; }
         public List<AlarmEventDto> AlarmEvents { get; set; } = new List<AlarmEventDto>();
 
         public AlarmDto(Alarm alarm)
@@ -16,7 +17,8 @@ namespace VanadiumAPI.DTO
             PanelId = alarm.PanelId;
             Threshold = alarm.Threshold;
             IsGreaterThan = alarm.IsGreaterThan;
-            AlarmEvents = alarm.AlarmEvents?.Select(ae => new AlarmEventDto(ae, panelId: alarm.PanelId, panelName: alarm.Panel?.Name ?? string.Empty)).ToList() ?? new List<AlarmEventDto>();
+            Severity = alarm.Severity;
+            AlarmEvents = alarm.AlarmEvents?.Select(ae => new AlarmEventDto(ae, panelId: alarm.PanelId, panelName: alarm.Panel?.Name ?? string.Empty, alarmSeverity: alarm.Severity)).ToList() ?? new List<AlarmEventDto>();
         }
 
         public AlarmDto() { }

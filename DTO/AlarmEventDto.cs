@@ -13,12 +13,15 @@ namespace VanadiumAPI.DTO
         public float Value { get; set; }
         /// <summary>Panel name at event time (or current name if legacy row).</summary>
         public string Name { get; set; } = string.Empty;
+        /// <summary>Severity of the alarm definition at fire time (from <see cref="Alarm.Severity"/>).</summary>
+        public AlarmSeverity Severity { get; set; }
 
         /// <summary>
         /// Builds from a persisted <see cref="AlarmEvent"/>.
         /// Optional <paramref name="panelId"/> / <paramref name="panelName"/> help older rows or graphs where denormalized fields were not stored.
+        /// Pass <paramref name="alarmSeverity"/> when <see cref="AlarmEvent.Alarm"/> is not loaded (e.g. hub broadcast right after insert).
         /// </summary>
-        public AlarmEventDto(AlarmEvent alarmEvent, int? panelId = null, string? panelName = null)
+        public AlarmEventDto(AlarmEvent alarmEvent, int? panelId = null, string? panelName = null, AlarmSeverity? alarmSeverity = null)
         {
             if (alarmEvent == null)
                 throw new ArgumentNullException(nameof(alarmEvent));
@@ -34,6 +37,7 @@ namespace VanadiumAPI.DTO
                 : (!string.IsNullOrEmpty(panelName)
                     ? panelName
                     : alarmEvent.Alarm?.Panel?.Name ?? string.Empty);
+            Severity = alarmSeverity ?? alarmEvent.Alarm?.Severity ?? AlarmSeverity.Warning;
         }
 
         public AlarmEventDto() { }

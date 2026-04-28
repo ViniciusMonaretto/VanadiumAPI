@@ -116,78 +116,89 @@ namespace VanadiumAPI.Services
                 return (null, "Erro ao atualizar o painel");
 
             _sensorDataSaver.UpdatePanel(panel);
+            
+            var panelForAlarms = await _repository.GetPanelById(panel.Id);
+            if (panelForAlarms == null)
+                return (null, "Alarmes de painel não encontrado");
 
-            if (dto.MaxAlarm.ShouldClearAll)
+            var alarmsToNotifyCreated = new List<Alarm>();
+            var alarmsToNotifyUpdated = new List<Alarm>();
+
+            if (!dto.MaxAlarm.HasValue)
             {
                 var clearErr = await ClearPanelAlarmsOfKindAsync(panel.Id, isGreaterThan: true);
                 if (clearErr != null) return (null, clearErr);
             }
-            if (dto.MinAlarm.ShouldClearAll)
+            else
+            {
+                var existingHigh = panelForAlarms.Alarms?
+                    .Where(a => a.IsGreaterThan)
+                    .OrderByDescending(a => a.Id)
+                    .FirstOrDefault();
+                if (existingHigh != null)
+                {
+
+                    if (existingHigh.Threshold != dto.MaxAlarm.Value || existingHigh.Severity != dto.AlarmSeverity)
+                    {
+                        existingHigh.Threshold = dto.MaxAlarm.Value;
+                        if (dto.AlarmSeverity.HasValue)
+                            existingHigh.Severity = dto.AlarmSeverity.Value;
+                        alarmsToNotifyUpdated.Add(existingHigh);
+                    }
+                }
+                else
+                {
+                    var a = new Alarm
+                    {
+                        PanelId = panel.Id,
+                        Threshold = dto.MaxAlarm.Value,
+                        IsGreaterThan = true,
+                        Severity = dto.AlarmSeverity ?? AlarmSeverity.Warning
+                    };
+                    _repository.Add(a);
+                    alarmsToNotifyCreated.Add(a);
+                }
+            }
+
+            if (!dto.MinAlarm.HasValue)
             {
                 var clearErr = await ClearPanelAlarmsOfKindAsync(panel.Id, isGreaterThan: false);
                 if (clearErr != null) return (null, clearErr);
             }
-
-            if (dto.MaxAlarm.HasThreshold || dto.MinAlarm.HasThreshold)
+            else
             {
-                var panelForAlarms = await _repository.GetPanelById(panel.Id);
-                if (panelForAlarms == null)
-                    return (null, "Painel não encontrado");
-
-                var alarmsToNotifyUpdated = new List<Alarm>();
-                var alarmsToNotifyCreated = new List<Alarm>();
-
-                if (dto.MaxAlarm.HasThreshold)
+                var existingLow = panelForAlarms.Alarms?
+                    .Where(a => !a.IsGreaterThan)
+                    .OrderByDescending(a => a.Id)
+                    .FirstOrDefault();
+                if (existingLow != null)
                 {
-                    var existingHigh = panelForAlarms.Alarms?
-                        .Where(a => a.IsGreaterThan)
-                        .OrderByDescending(a => a.Id)
-                        .FirstOrDefault();
-                    if (existingHigh != null)
+                    if (existingLow.Threshold != dto.MinAlarm.Value || existingLow.Severity != dto.AlarmSeverity)
                     {
-                        existingHigh.Threshold = dto.MaxAlarm.Threshold;
-                        alarmsToNotifyUpdated.Add(existingHigh);
-                    }
-                    else
-                    {
-                        var a = new Alarm
-                        {
-                            PanelId = panel.Id,
-                            Threshold = dto.MaxAlarm.Threshold,
-                            IsGreaterThan = true
-                        };
-                        _repository.Add(a);
-                        alarmsToNotifyCreated.Add(a);
-                    }
-                }
-
-                if (dto.MinAlarm.HasThreshold)
-                {
-                    var existingLow = panelForAlarms.Alarms?
-                        .Where(a => !a.IsGreaterThan)
-                        .OrderByDescending(a => a.Id)
-                        .FirstOrDefault();
-                    if (existingLow != null)
-                    {
-                        existingLow.Threshold = dto.MinAlarm.Threshold;
+                        existingLow.Threshold = dto.MinAlarm.Value;
+                        if (dto.AlarmSeverity.HasValue)
+                            existingLow.Severity = dto.AlarmSeverity.Value;
                         alarmsToNotifyUpdated.Add(existingLow);
                     }
-                    else
-                    {
-                        var a = new Alarm
-                        {
-                            PanelId = panel.Id,
-                            Threshold = dto.MinAlarm.Threshold,
-                            IsGreaterThan = false
-                        };
-                        _repository.Add(a);
-                        alarmsToNotifyCreated.Add(a);
-                    }
                 }
+                else
+                {
+                    var a = new Alarm
+                    {
+                        PanelId = panel.Id,
+                        Threshold = dto.MinAlarm.Value,
+                        IsGreaterThan = false,
+                        Severity = dto.AlarmSeverity ?? AlarmSeverity.Warning
+                    };
+                    _repository.Add(a);
+                    alarmsToNotifyCreated.Add(a);
+                }
+            }
 
+            if (alarmsToNotifyUpdated.Count > 0 || alarmsToNotifyCreated.Count > 0)
+            {
                 if (!await _repository.SaveAll())
                     return (null, "Erro ao salvar alarmes do painel");
-
                 foreach (var a in alarmsToNotifyUpdated)
                     _alarmRegistry.NotifyAlarmUpdated(a);
                 foreach (var a in alarmsToNotifyCreated)

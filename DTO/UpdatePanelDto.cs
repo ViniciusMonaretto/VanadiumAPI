@@ -1,3 +1,5 @@
+using Shared.Models;
+
 namespace VanadiumAPI.DTO
 {
     public class UpdatePanelDto
@@ -9,9 +11,8 @@ namespace VanadiumAPI.DTO
         public float? Offset { get; set; }
         public int? Multiplier { get; set; }
         public int? DisplayedType { get; set; }
-        /// <summary>Omit = unchanged; JSON <c>null</c> = remove all high-limit alarms; number = add a new high alarm.</summary>
-        public AlarmThresholdPatch MaxAlarm { get; set; }
-        /// <summary>Omit = unchanged; JSON <c>null</c> = remove all low-limit alarms; number = add a new low alarm.</summary>
-        public AlarmThresholdPatch MinAlarm { get; set; }
+        public AlarmSeverity? AlarmSeverity { get; set; }
+        public float? MaxAlarm { get; set; }
+        public float? MinAlarm { get; set; }
     }
 }

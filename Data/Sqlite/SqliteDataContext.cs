@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using VanadiumAPI.Services;
 using Shared.Models;
@@ -18,6 +19,7 @@ namespace Data.Sqlite
         public SqliteDataContext(DbContextOptions<SqliteDataContext> options) : base(options)
         {
             Database.EnsureCreated();
+            EnsureAlarmSeverityColumn();
             if (Users != null && !Users.Any())
                 SeedDefaultAdmin();
             if (Groups != null && Panels != null && !Groups.Any() && !Panels.Any())
@@ -58,6 +60,11 @@ namespace Data.Sqlite
                 .HasForeignKey(u => u.PanelId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Entity<Alarm>()
+                .Property(a => a.Severity)
+                .HasConversion<int>()
+                .HasDefaultValue(AlarmSeverity.Warning);
+
             builder.Entity<AlarmEvent>()
                 .HasOne(u => u.Alarm)
                 .WithMany(m => m.AlarmEvents)
@@ -97,6 +104,35 @@ namespace Data.Sqlite
             builder.Entity<Enterprise>()
                 .HasIndex(x => x.Name)
                 .IsUnique();
+        }
+
+        /// <summary>SQLite <see cref="Database.EnsureCreated"/> does not add columns; extend existing DBs.</summary>
+        private void EnsureAlarmSeverityColumn()
+        {
+            try
+            {
+                var connection = Database.GetDbConnection();
+                var wasOpen = connection.State == ConnectionState.Open;
+                if (!wasOpen)
+                    Database.OpenConnection();
+                try
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "SELECT 1 FROM pragma_table_info('Alarms') WHERE name='Severity' LIMIT 1";
+                    if (cmd.ExecuteScalar() != null)
+                        return;
+                    Database.ExecuteSqlRaw("ALTER TABLE Alarms ADD COLUMN Severity INTEGER NOT NULL DEFAULT 1");
+                }
+                finally
+                {
+                    if (!wasOpen)
+                        Database.CloseConnection();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("EnsureAlarmSeverityColumn: " + ex.Message);
+            }
         }
 
         private void SeedFromJson()
