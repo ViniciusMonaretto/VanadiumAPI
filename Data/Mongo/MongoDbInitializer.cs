@@ -11,7 +11,7 @@ namespace Data.Mongo
 
         public MongoDbInitializer(IMongoClient client, ILogger<MongoDbInitializer> logger)
         {
-            _database = client.GetDatabase("MyDatabase");
+            _database = client.GetDatabase("IoCloudServerDb");
             _logger = logger;
         }
 

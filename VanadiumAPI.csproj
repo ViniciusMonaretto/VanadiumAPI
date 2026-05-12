@@ -14,6 +14,8 @@
   </ItemGroup>
 
   <PropertyGroup>
+    <!-- When true, building VanadiumAPI also runs npm build and copies Angular to wwwroot (see VanadiumWebApp.Build.csproj). -->
+    <BuildAngular Condition="'$(BuildAngular)' == ''">false</BuildAngular>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -39,5 +41,6 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <ProjectReference Include=".\Shared\Models\Models.csproj" />
+    <ProjectReference Include="..\VanadiumWebApp\VanadiumWebApp.Build.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>

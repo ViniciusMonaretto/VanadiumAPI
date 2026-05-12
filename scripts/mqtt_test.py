@@ -1,3 +1,29 @@
+"""
+MQTT test: three flow gateways (L/s).
+
+Published JSON shapes (numeric fields vary at runtime):
+
+iocloud/response/{gatewayId}/sensor/report — periodic reading:
+{
+  "timestamp": 1734567890.123456,
+  "sensors": [
+    {"active": true, "value": 1.05}
+  ]
+}
+
+iocloud/response/{gatewayId}/command — system status (command_index 2):
+{
+  "command_index": 2,
+  "command_status": 0,
+  "device_id": "1C69209DFC01",
+  "ip_address": "192.168.3.79",
+  "uptime": 19510,
+  "sensors": [
+    {"gain": 1, "offset": 0, "index": 0, "state": 0, "unit": "L/s"}
+  ]
+}
+"""
+
 import time
 import random
 import json

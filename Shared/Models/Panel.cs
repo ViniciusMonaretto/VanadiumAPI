@@ -8,8 +8,7 @@ namespace Shared.Models
         Power = 3,
         Current = 4,
         Voltage = 5,
-        Frequency = 6,
-        PowerFactor = 7,
+        PowerFactor = 6,
     }
 
     public class Panel
