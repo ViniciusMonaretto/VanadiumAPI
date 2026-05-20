@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Threading.Channels;
 using Microsoft.AspNetCore.SignalR;
 using Shared.Models;
 using VanadiumAPI.DTO;
@@ -6,8 +7,11 @@ using VanadiumAPI.Hubs;
 
 namespace VanadiumAPI.Services
 {
-    public class HubBroadcastService : IHubBroadcastService
+    public class HubBroadcastService : IHubBroadcastService, IAsyncDisposable
     {
+        private static readonly TimeSpan SensorDataBatchDelay = TimeSpan.FromMilliseconds(2000);
+        private const int SensorDataBatchMaxSize = 500;
+
         private readonly IHubContext<PanelReadingsHub> _hubContext;
         private readonly ILogger<HubBroadcastService> _logger;
         private readonly ConcurrentDictionary<string, HashSet<string>> _subscribedConnectionsToGatewayIds = new();
@@ -16,10 +20,18 @@ namespace VanadiumAPI.Services
         private readonly ConcurrentDictionary<int, HashSet<string>> _panelConnections = new();
         private readonly ConcurrentDictionary<int, HashSet<string>> _enterpriseConnections = new();
 
+        private readonly Channel<SensorDataMessageModel> _sensorDataChannel =
+            Channel.CreateUnbounded<SensorDataMessageModel>(
+                new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
+
+        private readonly CancellationTokenSource _cts = new();
+        private readonly Task _sensorDataBatchTask;
+
         public HubBroadcastService(IHubContext<PanelReadingsHub> hubContext, ILogger<HubBroadcastService> logger)
         {
             _hubContext = hubContext;
             _logger = logger;
+            _sensorDataBatchTask = Task.Run(ProcessSensorDataBatchLoopAsync);
         }
 
         public void SubscribeToPanel(string connectionId, int userId, int panelId, string gatewayId)
@@ -71,10 +83,11 @@ namespace VanadiumAPI.Services
             return _connectionEnterprises.TryGetValue(connectionId, out var enterpriseId) ? enterpriseId : null;
         }
 
-        public async Task BroadcastSensorData(SensorDataMessageModel sensorData)
+        public Task BroadcastSensorData(SensorDataMessageModel sensorData)
         {
-            if (_subscribedConnectionsToGatewayIds.TryGetValue(sensorData.GatewayId, out var connections) && connections.Any())
-                await _hubContext.Clients.Clients(connections.ToList()).SendAsync("SensorDataReceived", sensorData);
+            if (!_sensorDataChannel.Writer.TryWrite(sensorData))
+                _logger.LogWarning("Sensor data channel full; dropping reading for gateway {GatewayId}", sensorData.GatewayId);
+            return Task.CompletedTask;
         }
 
         public async Task BroadcastPanelChange(PanelChangeAction action, PanelDto panelDto)
@@ -183,6 +196,114 @@ namespace VanadiumAPI.Services
         {
             if (_enterpriseConnections.TryGetValue(enterpriseId, out var connections) && connections.Any())
                 await _hubContext.Clients.Clients(connections.ToList()).SendAsync("AlarmEventReceived", alarmEvent);
+        }
+
+        private async Task ProcessSensorDataBatchLoopAsync()
+        {
+            var buffer = new List<SensorDataMessageModel>(256);
+
+            try
+            {
+                while (await _sensorDataChannel.Reader.WaitToReadAsync(_cts.Token))
+                {
+                    while (_sensorDataChannel.Reader.TryRead(out var item))
+                    {
+                        buffer.Add(item);
+                        if (buffer.Count >= SensorDataBatchMaxSize)
+                            break;
+                    }
+
+                    if (buffer.Count == 0)
+                        continue;
+
+                    if (buffer.Count < SensorDataBatchMaxSize)
+                    {
+                        try
+                        {
+                            await Task.Delay(SensorDataBatchDelay, _cts.Token);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            break;
+                        }
+
+                        while (_sensorDataChannel.Reader.TryRead(out var extra))
+                        {
+                            buffer.Add(extra);
+                            if (buffer.Count >= SensorDataBatchMaxSize)
+                                break;
+                        }
+                    }
+
+                    await FlushSensorDataBufferAsync(buffer);
+                    buffer.Clear();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // shutdown
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Sensor data batch loop failed");
+            }
+            finally
+            {
+                while (_sensorDataChannel.Reader.TryRead(out var remaining))
+                    buffer.Add(remaining);
+
+                if (buffer.Count > 0)
+                    await FlushSensorDataBufferAsync(buffer);
+            }
+        }
+
+        private async Task FlushSensorDataBufferAsync(List<SensorDataMessageModel> batch)
+        {
+            var messagesByConnection = new Dictionary<string, List<SensorDataMessageModel>>();
+
+            foreach (var message in batch)
+            {
+                if (!_subscribedConnectionsToGatewayIds.TryGetValue(message.GatewayId, out var connections) || connections.Count == 0)
+                    continue;
+
+                foreach (var connectionId in connections)
+                {
+                    if (!messagesByConnection.TryGetValue(connectionId, out var list))
+                    {
+                        list = new List<SensorDataMessageModel>();
+                        messagesByConnection[connectionId] = list;
+                    }
+                    list.Add(message);
+                }
+            }
+
+            if (messagesByConnection.Count == 0)
+                return;
+
+            var sendTasks = messagesByConnection.Select(kvp =>
+                _hubContext.Clients.Client(kvp.Key).SendAsync("SensorDataBatchReceived", kvp.Value));
+
+            await Task.WhenAll(sendTasks);
+
+            _logger.LogDebug(
+                "Flushed sensor data batch: {MessageCount} readings to {ConnectionCount} connections",
+                batch.Count,
+                messagesByConnection.Count);
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            _sensorDataChannel.Writer.TryComplete();
+            _cts.Cancel();
+            try
+            {
+                await _sensorDataBatchTask.ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Sensor data batch task ended during dispose");
+            }
+            _cts.Dispose();
         }
     }
 }
