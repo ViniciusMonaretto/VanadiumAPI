@@ -2,6 +2,13 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "build-web",
+            "type": "shell",
+            "command": "${workspaceFolder}/scripts/build-web.sh",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
             "label": "build",
             "command": "dotnet",
             "type": "process",

@@ -166,9 +166,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// SPA (wwwroot) + API + SignalR on the same port (see appsettings Server:Url)
 app.UseDefaultFiles();
 app.UseStaticFiles();
+
+if (!app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
