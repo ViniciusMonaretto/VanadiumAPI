@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Models</name>
+    </assembly>
+    <members>
+        <member name="P:Shared.Models.Alarm.Severity">
+            <summary>How serious this alarm is when it fires (defaults to <see cref="F:Shared.Models.AlarmSeverity.Warning"/>).</summary>
+        </member>
+        <member name="P:Shared.Models.AlarmEvent.PanelId">
+            <summary>Denormalized for queries and DTOs without loading <see cref="P:Shared.Models.AlarmEvent.Alarm"/>.</summary>
+        </member>
+        <member name="P:Shared.Models.AlarmEvent.TriggeredValue">
+            <summary>Scaled reading value (<c>Gain * raw + Offset</c>) at the time the alarm fired.</summary>
+        </member>
+        <member name="P:Shared.Models.AlarmEvent.PanelName">
+            <summary>Panel display name snapshot at event time.</summary>
+        </member>
+        <member name="P:Shared.Models.FlowConsumption.ReadingsLastHour">
+            <summary>Readings from the last hour for this panel.</summary>
+        </member>
+        <member name="T:Shared.Models.CommandResponsePayload">
+            <summary>Payload for MQTT topic iocloud/response/{gatewayId}/command. command_index 2 = system.</summary>
+        </member>
+    </members>
+</doc>

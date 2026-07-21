@@ -23,7 +23,19 @@
     <!-- Prevent duplicate assembly attributes (single source in Properties/AssemblyInfo.cs) -->
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <!-- Release publish defaults (overridable from scripts: -p:PublishSingleFile=true) -->
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''"></RuntimeIdentifier>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Update="config.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Remove="scripts/**" />
+    <Content Remove="dist/**" />
+    <Content Remove="build/**" />
+    <Content Remove="VanadiumMicroservices/**" />
+    <Content Remove="Shared/**" />
+    <Content Remove="DbConfig/**" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="MQTTnet" Version="5.0.1.1416" />

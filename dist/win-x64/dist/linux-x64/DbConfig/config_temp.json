@@ -1,0 +1,985 @@
+{
+  "Gateways": [
+    {
+      "GatewayId": "1C69209DFC01"
+    },
+    {
+      "GatewayId": "1C69209DFC02"
+    },
+    {
+      "GatewayId": "1C69209DFC03"
+    },
+    {
+      "GatewayId": "1C69209DFC04"
+    },
+    {
+      "GatewayId": "1C69209DFC05"
+    },
+    {
+      "GatewayId": "1C69209DFC06"
+    },
+    {
+      "GatewayId": "1C69209DFC07"
+    },
+    {
+      "GatewayId": "1C69209DFC08"
+    },
+    {
+      "GatewayId": "1C69209DFC09"
+    },
+    {
+      "GatewayId": "1C69209DFC10"
+    },
+    {
+      "GatewayId": "1C69209DFC11"
+    },
+    {
+      "GatewayId": "1C69209DFC12"
+    },
+    {
+      "GatewayId": "1C69209DFC13"
+    },
+    {
+      "GatewayId": "1C69209DFC14"
+    },
+    {
+      "GatewayId": "1C69209DFC15"
+    },
+    {
+      "GatewayId": "1C69209DFC16"
+    },
+    {
+      "GatewayId": "1C69209DFC17"
+    },
+    {
+      "GatewayId": "1C69209DFC18"
+    },
+    {
+      "GatewayId": "1C69209DFC19"
+    },
+    {
+      "GatewayId": "1C69209DFC20"
+    },
+    {
+      "GatewayId": "1C69209DFC21"
+    },
+    {
+      "GatewayId": "1C69209DFC22"
+    },
+    {
+      "GatewayId": "1C69209DFC23"
+    },
+    {
+      "GatewayId": "1C69209DFC24"
+    },
+    {
+      "GatewayId": "1C69209DFC25"
+    },
+    {
+      "GatewayId": "1C69209DFC26"
+    },
+    {
+      "GatewayId": "1C69209DFC27"
+    },
+    {
+      "GatewayId": "1C69209DFC28"
+    },
+    {
+      "GatewayId": "1C69209DFC29"
+    },
+    {
+      "GatewayId": "1C69209DFC30"
+    },
+    {
+      "GatewayId": "1C69209DFC31"
+    },
+    {
+      "GatewayId": "1C69209DFC32"
+    },
+    {
+      "GatewayId": "1C69209DFC33"
+    },
+    {
+      "GatewayId": "1C69209DFC34"
+    },
+    {
+      "GatewayId": "1C69209DFC35"
+    },
+    {
+      "GatewayId": "1C69209DFC36"
+    },
+    {
+      "GatewayId": "1C69209DFC37"
+    },
+    {
+      "GatewayId": "1C69209DFC38"
+    },
+    {
+      "GatewayId": "1C69209DFC39"
+    },
+    {
+      "GatewayId": "1C69209DFC40"
+    },
+    {
+      "GatewayId": "1C69209DFC41"
+    },
+    {
+      "GatewayId": "1C69209DFC42"
+    },
+    {
+      "GatewayId": "1C69209DFC43"
+    },
+    {
+      "GatewayId": "1C69209DFC44"
+    },
+    {
+      "GatewayId": "1C69209DFC45"
+    },
+    {
+      "GatewayId": "1C69209DFC46"
+    },
+    {
+      "GatewayId": "1C69209DFC47"
+    },
+    {
+      "GatewayId": "1C69209DFC48"
+    },
+    {
+      "GatewayId": "1C69209DFC49"
+    },
+    {
+      "GatewayId": "1C69209DFC50"
+    },
+    {
+      "GatewayId": "1C69209DFC51"
+    },
+    {
+      "GatewayId": "1C69209DFC52"
+    },
+    {
+      "GatewayId": "1C69209DFC53"
+    },
+    {
+      "GatewayId": "1C69209DFC54"
+    },
+    {
+      "GatewayId": "1C69209DFC55"
+    },
+    {
+      "GatewayId": "1C69209DFC56"
+    },
+    {
+      "GatewayId": "1C69209DFC57"
+    },
+    {
+      "GatewayId": "1C69209DFC58"
+    },
+    {
+      "GatewayId": "1C69209DFC59"
+    },
+    {
+      "GatewayId": "1C69209DFC60"
+    },
+    {
+      "GatewayId": "1C69209DFP01"
+    },
+    {
+      "GatewayId": "1C69209DFP02"
+    },
+    {
+      "GatewayId": "1C69209DFP03"
+    },
+    {
+      "GatewayId": "1C69209DFP04"
+    },
+    {
+      "GatewayId": "1C69209DFC61"
+    }
+  ],
+  "Groups": [
+    {
+      "Name": "Câmera 1",
+      "EnterpriseId": 1
+    },
+    {
+      "Name": "Câmera 2",
+      "EnterpriseId": 1
+    },
+    {
+      "Name": "pressão",
+      "EnterpriseId": 1
+    },
+    {
+      "Name": "energia",
+      "EnterpriseId": 1
+    }
+  ],
+  "Panels": [
+    {
+      "Name": "Câmera 1 - Temp 01",
+      "GatewayId": "1C69209DFC01",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "red",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 02",
+      "GatewayId": "1C69209DFC02",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "green",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 03",
+      "GatewayId": "1C69209DFC03",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "blue",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 04",
+      "GatewayId": "1C69209DFC04",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "orange",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 05",
+      "GatewayId": "1C69209DFC05",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "purple",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 06",
+      "GatewayId": "1C69209DFC06",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "cyan",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 07",
+      "GatewayId": "1C69209DFC07",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "yellow",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 08",
+      "GatewayId": "1C69209DFC08",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "magenta",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 09",
+      "GatewayId": "1C69209DFC09",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "red",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 10",
+      "GatewayId": "1C69209DFC10",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "green",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 11",
+      "GatewayId": "1C69209DFC11",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "blue",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 12",
+      "GatewayId": "1C69209DFC12",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "orange",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 13",
+      "GatewayId": "1C69209DFC13",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "purple",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 14",
+      "GatewayId": "1C69209DFC14",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "cyan",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 15",
+      "GatewayId": "1C69209DFC15",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "yellow",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 16",
+      "GatewayId": "1C69209DFC16",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "magenta",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 17",
+      "GatewayId": "1C69209DFC17",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "red",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 18",
+      "GatewayId": "1C69209DFC18",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "green",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 19",
+      "GatewayId": "1C69209DFC19",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "blue",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 20",
+      "GatewayId": "1C69209DFC20",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "orange",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 21",
+      "GatewayId": "1C69209DFC21",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "purple",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 22",
+      "GatewayId": "1C69209DFC22",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "cyan",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 23",
+      "GatewayId": "1C69209DFC23",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "yellow",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 24",
+      "GatewayId": "1C69209DFC24",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "magenta",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 25",
+      "GatewayId": "1C69209DFC25",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "red",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 26",
+      "GatewayId": "1C69209DFC26",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "green",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 27",
+      "GatewayId": "1C69209DFC27",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "blue",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 28",
+      "GatewayId": "1C69209DFC28",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "orange",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 29",
+      "GatewayId": "1C69209DFC29",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "purple",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 1 - Temp 30",
+      "GatewayId": "1C69209DFC30",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "cyan",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 01",
+      "GatewayId": "1C69209DFC31",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "red",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 02",
+      "GatewayId": "1C69209DFC32",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "green",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 03",
+      "GatewayId": "1C69209DFC33",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "blue",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 04",
+      "GatewayId": "1C69209DFC34",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "orange",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 05",
+      "GatewayId": "1C69209DFC35",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "purple",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 06",
+      "GatewayId": "1C69209DFC36",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "cyan",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 07",
+      "GatewayId": "1C69209DFC37",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "yellow",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 08",
+      "GatewayId": "1C69209DFC38",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "magenta",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 09",
+      "GatewayId": "1C69209DFC39",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "red",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 10",
+      "GatewayId": "1C69209DFC40",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "green",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 11",
+      "GatewayId": "1C69209DFC41",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "blue",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 12",
+      "GatewayId": "1C69209DFC42",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "orange",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 13",
+      "GatewayId": "1C69209DFC43",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "purple",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 14",
+      "GatewayId": "1C69209DFC44",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "cyan",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 15",
+      "GatewayId": "1C69209DFC45",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "yellow",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 16",
+      "GatewayId": "1C69209DFC46",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "magenta",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 17",
+      "GatewayId": "1C69209DFC47",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "red",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 18",
+      "GatewayId": "1C69209DFC48",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "green",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 19",
+      "GatewayId": "1C69209DFC49",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "blue",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 20",
+      "GatewayId": "1C69209DFC50",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "orange",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 21",
+      "GatewayId": "1C69209DFC51",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "purple",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 22",
+      "GatewayId": "1C69209DFC52",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "cyan",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 23",
+      "GatewayId": "1C69209DFC53",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "yellow",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 24",
+      "GatewayId": "1C69209DFC54",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "magenta",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 25",
+      "GatewayId": "1C69209DFC55",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "red",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 26",
+      "GatewayId": "1C69209DFC56",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "green",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 27",
+      "GatewayId": "1C69209DFC57",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "blue",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 28",
+      "GatewayId": "1C69209DFC58",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "orange",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 29",
+      "GatewayId": "1C69209DFC59",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "purple",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera 2 - Temp 30",
+      "GatewayId": "1C69209DFC60",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "cyan",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Pressão 01",
+      "GatewayId": "1C69209DFP01",
+      "GroupId": 3,
+      "Index": "0",
+      "Color": "red",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 1
+    },
+    {
+      "Name": "Pressão 02",
+      "GatewayId": "1C69209DFP02",
+      "GroupId": 3,
+      "Index": "0",
+      "Color": "green",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 1
+    },
+    {
+      "Name": "Pressão 03",
+      "GatewayId": "1C69209DFP03",
+      "GroupId": 3,
+      "Index": "0",
+      "Color": "blue",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 1
+    },
+    {
+      "Name": "Pressão 04",
+      "GatewayId": "1C69209DFP04",
+      "GroupId": 3,
+      "Index": "0",
+      "Color": "orange",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 1
+    },
+    {
+      "Name": "Potência",
+      "GatewayId": "1C69209DFC61",
+      "GroupId": 4,
+      "Index": "0",
+      "Color": "red",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 3
+    },
+    {
+      "Name": "Corrente",
+      "GatewayId": "1C69209DFC61",
+      "GroupId": 4,
+      "Index": "1",
+      "Color": "green",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 4
+    },
+    {
+      "Name": "Tensão",
+      "GatewayId": "1C69209DFC61",
+      "GroupId": 4,
+      "Index": "2",
+      "Color": "blue",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 5
+    },
+    {
+      "Name": "Fator de Potência",
+      "GatewayId": "1C69209DFC61",
+      "GroupId": 4,
+      "Index": "3",
+      "Color": "orange",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 6
+    }
+  ],
+  "Alarms": [],
+  "Enterprises": [
+    {
+      "Name": "Enterprise 1",
+      "ManagerId": 2,
+      "MaxUsers": 10,
+      "MaxPanels": 100
+    }
+  ],
+  "Users": [
+    {
+      "Name": "user",
+      "Email": "user@user.com",
+      "UserName": "user",
+      "Password": "user",
+      "UserType": 1
+    }
+  ]
+}

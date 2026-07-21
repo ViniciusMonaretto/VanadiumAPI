@@ -1,0 +1,13 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cabeça do usuário -->
+  <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z"
+        stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Corpo do usuário -->
+  <path d="M6 21C6 17.6863 8.68629 15 12 15C15.3137 15 18 17.6863 18 21"
+        stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Risco (logout / desativado) -->
+  <path d="M4 4L20 20"
+        stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,221 @@
+{
+  "Gateways": [
+    {
+      "GatewayId": "1C69209DFC01"
+    },
+    {
+      "GatewayId": "1C69209DFC02"
+    },
+    {
+      "GatewayId": "1C69209DFC03"
+    },
+    {
+      "GatewayId": "1C69209DFC04"
+    },
+    {
+      "GatewayId": "1C69209DFC05"
+    },
+    {
+      "GatewayId": "1C69209DFC06"
+    },
+    {
+      "GatewayId": "1C69209DFC07"
+    },
+    {
+      "GatewayId": "1C69209DFC08"
+    },
+    {
+      "GatewayId": "1C69209DFC09"
+    },
+    {
+      "GatewayId": "1C69209DFC10"
+    },
+    {
+      "GatewayId": "1C69209DFC61"
+    }
+  ],
+  "Groups": [
+    {
+      "Name": "câmera fria",
+      "EnterpriseId": 1
+    },
+    {
+      "Name": "potência",
+      "EnterpriseId": 1
+    }
+  ],
+  "Panels": [
+    {
+      "Name": "Câmera fria - Temp 01",
+      "GatewayId": "1C69209DFC01",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "red",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera fria - Temp 02",
+      "GatewayId": "1C69209DFC02",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "green",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera fria - Temp 03",
+      "GatewayId": "1C69209DFC03",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "blue",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera fria - Temp 04",
+      "GatewayId": "1C69209DFC04",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "orange",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera fria - Temp 05",
+      "GatewayId": "1C69209DFC05",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "purple",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera fria - Temp 06",
+      "GatewayId": "1C69209DFC06",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "cyan",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera fria - Temp 07",
+      "GatewayId": "1C69209DFC07",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "yellow",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera fria - Temp 08",
+      "GatewayId": "1C69209DFC08",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "magenta",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera fria - Temp 09",
+      "GatewayId": "1C69209DFC09",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "red",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Câmera fria - Temp 10",
+      "GatewayId": "1C69209DFC10",
+      "GroupId": 1,
+      "Index": "0",
+      "Color": "green",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 0
+    },
+    {
+      "Name": "Potência",
+      "GatewayId": "1C69209DFC61",
+      "GroupId": 2,
+      "Index": "0",
+      "Color": "red",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 3
+    },
+    {
+      "Name": "Corrente",
+      "GatewayId": "1C69209DFC61",
+      "GroupId": 2,
+      "Index": "1",
+      "Color": "green",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 4
+    },
+    {
+      "Name": "Tensão",
+      "GatewayId": "1C69209DFC61",
+      "GroupId": 2,
+      "Index": "2",
+      "Color": "blue",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 5
+    },
+    {
+      "Name": "Fator de Potência",
+      "GatewayId": "1C69209DFC61",
+      "GroupId": 2,
+      "Index": "3",
+      "Color": "orange",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 6
+    }
+  ],
+  "Alarms": [],
+  "Enterprises": [
+    {
+      "Name": "Enterprise 1",
+      "ManagerId": 2,
+      "MaxUsers": 10,
+      "MaxPanels": 100
+    }
+  ],
+  "Users": [
+    {
+      "Name": "ioCloud",
+      "Email": "ioCloud@ioCloud.com",
+      "UserName": "ioCloud",
+      "Password": "ioCloud",
+      "UserType": 0
+    }
+  ]
+}
