@@ -20,6 +20,8 @@ namespace Data.Sqlite
         {
             Database.EnsureCreated();
             EnsureAlarmSeverityColumn();
+            EnsurePanelSamplingMsColumn();
+            EnsurePanelEnabledColumn();
             if (Users != null && !Users.Any())
                 SeedDefaultAdmin();
             if (Groups != null && Panels != null && !Groups.Any() && !Panels.Any())
@@ -132,6 +134,64 @@ namespace Data.Sqlite
             catch (Exception ex)
             {
                 Console.WriteLine("EnsureAlarmSeverityColumn: " + ex.Message);
+            }
+        }
+
+        /// <summary>SQLite <see cref="Database.EnsureCreated"/> does not add columns; extend existing DBs.</summary>
+        private void EnsurePanelSamplingMsColumn()
+        {
+            try
+            {
+                var connection = Database.GetDbConnection();
+                var wasOpen = connection.State == ConnectionState.Open;
+                if (!wasOpen)
+                    Database.OpenConnection();
+                try
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "SELECT 1 FROM pragma_table_info('Panels') WHERE name='SamplingMs' LIMIT 1";
+                    if (cmd.ExecuteScalar() != null)
+                        return;
+                    Database.ExecuteSqlRaw("ALTER TABLE Panels ADD COLUMN SamplingMs INTEGER NOT NULL DEFAULT 0");
+                }
+                finally
+                {
+                    if (!wasOpen)
+                        Database.CloseConnection();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("EnsurePanelSamplingMsColumn: " + ex.Message);
+            }
+        }
+
+        /// <summary>SQLite <see cref="Database.EnsureCreated"/> does not add columns; extend existing DBs.</summary>
+        private void EnsurePanelEnabledColumn()
+        {
+            try
+            {
+                var connection = Database.GetDbConnection();
+                var wasOpen = connection.State == ConnectionState.Open;
+                if (!wasOpen)
+                    Database.OpenConnection();
+                try
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "SELECT 1 FROM pragma_table_info('Panels') WHERE name='Enabled' LIMIT 1";
+                    if (cmd.ExecuteScalar() != null)
+                        return;
+                    Database.ExecuteSqlRaw("ALTER TABLE Panels ADD COLUMN Enabled INTEGER NOT NULL DEFAULT 1");
+                }
+                finally
+                {
+                    if (!wasOpen)
+                        Database.CloseConnection();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("EnsurePanelEnabledColumn: " + ex.Message);
             }
         }
 

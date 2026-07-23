@@ -155,13 +155,18 @@ namespace VanadiumAPI.Services
                 enterpriseId,
                 _ => new ConcurrentDictionary<string, SystemMessageModel>(),
                 (_, d) => d);
+
+            var wasConnected = perEnterprise.TryGetValue(gatewayId, out var previous) && previous.IsConnected;
             perEnterprise[gatewayId] = systemData;
 
-            await _hubBroadcast.BroadcastGatewaySystemInfo(enterpriseId, systemData);
+            if (!wasConnected)
+                await _hubBroadcast.BroadcastGatewaySystemInfo(enterpriseId, systemData);
         }
 
         public async Task UpdateGatewayLastActivityAsync(string gatewayId)
         {
+            await EnsureStoreInitializedAsync();
+
             Gateway? gateway;
             using (var scope = _provider.CreateScope())
             {
@@ -175,12 +180,16 @@ namespace VanadiumAPI.Services
                 return;
             }
 
+            var now = new DateTime(DateTime.UtcNow.Ticks, DateTimeKind.Utc);
             var enterpriseId = gateway.EnterpriseId;
             var perEnterprise = _store.AddOrUpdate(
                 enterpriseId,
                 _ => new ConcurrentDictionary<string, SystemMessageModel>(),
                 (_, d) => d);
-            perEnterprise[gatewayId].LastActivity = new DateTime(DateTime.UtcNow.Ticks, DateTimeKind.Utc);
+            perEnterprise.AddOrUpdate(
+                gatewayId,
+                _ => new SystemMessageModel { GatewayId = gatewayId, IsConnected = false, LastActivity = now },
+                (_, existing) => { existing.LastActivity = now; return existing; });
         }
 
         public async Task<IReadOnlyDictionary<string, SystemMessageModel>> GetGatewayInfoByEnterpriseAsync(int enterpriseId)
@@ -189,6 +198,28 @@ namespace VanadiumAPI.Services
             if (!_store.TryGetValue(enterpriseId, out var gateways))
                 return new Dictionary<string, SystemMessageModel>();
             return new Dictionary<string, SystemMessageModel>(gateways);
+        }
+
+        public async Task CheckGatewayHeartbeatTimeoutsAsync(TimeSpan timeout)
+        {
+            await EnsureStoreInitializedAsync();
+
+            var now = DateTime.UtcNow;
+            foreach (var (enterpriseId, perEnterprise) in _store)
+            {
+                foreach (var systemData in perEnterprise.Values)
+                {
+                    if (!systemData.IsConnected || systemData.LastActivity == null)
+                        continue;
+
+                    if (now - systemData.LastActivity.Value <= timeout)
+                        continue;
+
+                    systemData.IsConnected = false;
+                    _logger.LogInformation("Gateway {GatewayId} timed out (no message for over {Timeout}), marking offline", systemData.GatewayId, timeout);
+                    await _hubBroadcast.BroadcastGatewaySystemInfo(enterpriseId, systemData);
+                }
+            }
         }
     }
 }

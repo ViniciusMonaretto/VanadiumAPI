@@ -13,6 +13,8 @@ namespace VanadiumAPI.DTO
         public float Gain { get; set; }
         public float Offset { get; set; }
         public int Multiplier { get; set; }
+        public int SamplingMs { get; set; }
+        public bool Enabled { get; set; }
         public PanelType Type { get; set; }
         public List<AlarmDto> Alarms { get; set; } = new List<AlarmDto>();
         /// <summary>Latest high-threshold alarm for this panel (value above threshold triggers), if any.</summary>
@@ -42,6 +44,8 @@ namespace VanadiumAPI.DTO
             Gain = panel.Gain;
             Offset = panel.Offset;
             Multiplier = panel.Multiplier;
+            SamplingMs = panel.SamplingMs;
+            Enabled = panel.Enabled;
             Type = panel.Type;
             DisplayedType = panel.DisplayedType;
             Alarms = panel.Alarms?.Select(a => new AlarmDto(a)).ToList() ?? new List<AlarmDto>();

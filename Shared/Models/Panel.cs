@@ -24,6 +24,8 @@ namespace Shared.Models
         public float Gain { get; set; }
         public float Offset { get; set; }
         public int Multiplier { get; set; }
+        public int SamplingMs { get; set; }
+        public bool Enabled { get; set; } = true;
         public PanelType Type { get; set; }
         public ICollection<Alarm> Alarms { get; set; }
         public int DisplayedType { get; set; }

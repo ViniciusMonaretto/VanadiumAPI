@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using VanadiumAPI.Services.AlarmRegistry;
 using Microsoft.Extensions.Logging;
 using Shared.Models;
+using Shared.Models.Mqtt;
 
 namespace VanadiumAPI.SensorDataSaver
 {
@@ -137,23 +138,23 @@ namespace VanadiumAPI.SensorDataSaver
 
         private async Task ProcessSensorDataMessage(SensorDataMessageModel message)
         {
-            if (message.GatewayData?.Sensors == null)
+            if (message.Telemetry?.Readings == null)
             {
-                _logger.LogError("Invalid gateway data: {GatewayId}", message.GatewayId);
+                _logger.LogError("Invalid telemetry data: {GatewayId}", message.GatewayId);
                 return;
             }
 
-            var timestamp = message.GatewayData.Timestamp;
+            var timestamp = message.Telemetry.Timestamp;
             var saveNowReadings = new List<PanelReading>();
 
             using (var scope = _provider.CreateScope())
             {
                 var panelRepo = scope.ServiceProvider.GetRequiredService<IPanelInfoRepository>();
-                for (var i = 0; i < message.GatewayData.Sensors.Count; i++)
+                foreach (var reading in message.Telemetry.Readings)
                 {
-                    var (reading, saveNow) = await ProcessSensorReadingAsync(message.GatewayId, i, message.GatewayData.Sensors[i], timestamp, panelRepo);
-                    if (reading != null && saveNow)
-                        saveNowReadings.Add(reading);
+                    var (panelReading, saveNow) = await ProcessSensorReadingAsync(message.GatewayId, reading, timestamp, panelRepo);
+                    if (panelReading != null && saveNow)
+                        saveNowReadings.Add(panelReading);
                 }
             }
 
@@ -181,9 +182,9 @@ namespace VanadiumAPI.SensorDataSaver
             return panel.Type == PanelType.Flow;
         }
 
-        private async Task<(PanelReading? reading, bool saveNow)> ProcessSensorReadingAsync(string gatewayId, int sensorIndex, SensorData sensor, DateTime timestamp, IPanelInfoRepository panelRepo)
+        private async Task<(PanelReading? reading, bool saveNow)> ProcessSensorReadingAsync(string gatewayId, SensorReading reading, DateTime timestamp, IPanelInfoRepository panelRepo)
         {
-            var indexStr = sensorIndex.ToString();
+            var indexStr = reading.SensorId.ToString();
             var panel = await panelRepo.GetPanelByGatewayAndIndexAsync(gatewayId, indexStr);
             if (panel == null)
             {
@@ -195,8 +196,8 @@ namespace VanadiumAPI.SensorDataSaver
             {
                 PanelId = panel.Id,
                 ReadingTime = timestamp,
-                Value = sensor.Value,
-                Active = sensor.Active,
+                Value = reading.Value,
+                Active = true,
             };
 
             if (ShouldSaveNow(panel))

@@ -1,9 +1,12 @@
+using System.Collections.Concurrent;
+using System.Text.Json;
 using System.Threading.Channels;
 using MQTTnet;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shared.Models;
+using Shared.Models.Mqtt;
 using VanadiumAPI.SensorDataSaver;
 using VanadiumAPI.Services;
 
@@ -19,6 +22,17 @@ namespace VanadiumAPI.Mqtt
         private readonly IGatewayServerService _gatewayServer;
         private readonly HashSet<string> _subscribedTopics = new();
         private readonly Channel<(string Topic, string Payload)> _messageQueue = Channel.CreateUnbounded<(string, string)>();
+
+        private static int _nextRequestId;
+        private readonly ConcurrentDictionary<int, PendingCommand> _pendingCommands = new();
+
+        private sealed class PendingCommand
+        {
+            public required string DeviceId { get; init; }
+            public required int Cmd { get; init; }
+            public required TaskCompletionSource<CommandResponseEnvelope> Tcs { get; init; }
+            public CancellationTokenRegistration TimeoutRegistration { get; set; }
+        }
 
         public MqttService(
             IOptions<MqttOptions> mqttOptions,
@@ -102,54 +116,177 @@ namespace VanadiumAPI.Mqtt
         private void ProcessOneMessage(string topic, string payload)
         {
             var parts = topic.Split('/');
-            if (parts.Length < 4)
+            if (parts.Length < 3 || parts[0] != "iocloud")
             {
                 _logger.LogWarning("Invalid topic format: {Topic}", topic);
                 return;
             }
 
-            var gatewayId = parts[2];
-            // iocloud/response/{gatewayId}/command (4 parts) or iocloud/response/{gatewayId}/.../command (5+ parts)
-            var command = parts.Length >= 5 ? parts[4] : parts[3];
+            var deviceId = parts[1];
+            var suffix = string.Join('/', parts.Skip(2));
 
-            if (command == "report")
+            switch (suffix)
             {
-                var gatewayData = GatewayDataTranslator.Translate(command, payload) as GatewayData;
-                if (gatewayData == null)
-                {
-                    _logger.LogError("Invalid gateway data: {Payload}", payload);
-                    return;
-                }
-
-                var msg = new SensorDataMessageModel
-                {
-                    Topic = topic,
-                    GatewayId = gatewayId,
-                    GatewayData = gatewayData
-                };
-                _sensorDataSaver.PushSensorData(msg);
-                _ = _broadcastService.BroadcastSensorData(msg);
-                _ = _gatewayServer.UpdateGatewayLastActivityAsync(gatewayId);
+                case "heartbeat":
+                    HandleHeartbeat(deviceId, topic, payload);
+                    break;
+                case "telemetry":
+                    HandleTelemetry(deviceId, topic, payload);
+                    break;
+                case "events":
+                    HandleEvent(deviceId, topic, payload);
+                    break;
+                case "commands/response":
+                    HandleCommandResponse(deviceId, payload);
+                    break;
+                default:
+                    _logger.LogWarning("Unknown topic suffix: {Suffix} (topic {Topic})", suffix, topic);
+                    break;
             }
-            else if (command == "command" || command == "system")
+        }
+
+        private void HandleHeartbeat(string deviceId, string topic, string payload)
+        {
+            DeviceHeartbeatPayload? heartbeat;
+            try
             {
-                var systemData = GatewayDataTranslator.Translate(command, payload) as SystemMessageModel;
-                if (systemData != null)
+                heartbeat = JsonSerializer.Deserialize<DeviceHeartbeatPayload>(payload);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Invalid heartbeat payload for {DeviceId}", deviceId);
+                return;
+            }
+            if (heartbeat == null) return;
+
+            var systemData = new SystemMessageModel
+            {
+                Topic = topic,
+                GatewayId = deviceId,
+                IpAddress = heartbeat.Ip,
+                Uptime = DateTime.UtcNow.AddMilliseconds(-heartbeat.UptimeMs),
+                IsConnected = true,
+            };
+            _ = _gatewayServer.AddGatewaySystemInfoAsync(deviceId, systemData);
+        }
+
+        private void HandleTelemetry(string deviceId, string topic, string payload)
+        {
+            DeviceTelemetryPayload? telemetry;
+            try
+            {
+                telemetry = JsonSerializer.Deserialize<DeviceTelemetryPayload>(payload);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Invalid telemetry payload for {DeviceId}", deviceId);
+                return;
+            }
+            if (telemetry == null)
+            {
+                _logger.LogError("Invalid telemetry data: {Payload}", payload);
+                return;
+            }
+
+            var msg = new SensorDataMessageModel
+            {
+                Topic = topic,
+                GatewayId = deviceId,
+                Telemetry = telemetry
+            };
+            _sensorDataSaver.PushSensorData(msg);
+            _ = _broadcastService.BroadcastSensorData(msg);
+            _ = _gatewayServer.UpdateGatewayLastActivityAsync(deviceId);
+        }
+
+        private void HandleEvent(string deviceId, string topic, string payload)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(payload);
+                var evt = new DeviceEventMessage
                 {
-                    systemData.Topic = topic;
-                    systemData.GatewayId = gatewayId;
-                    _ = _gatewayServer.AddGatewaySystemInfoAsync(gatewayId, systemData);
-                }
+                    DeviceId = deviceId,
+                    Topic = topic,
+                    RawPayload = doc.RootElement.Clone(),
+                    ReceivedAt = DateTime.UtcNow
+                };
+                _logger.LogDebug("Device event received: {DeviceId} {Payload}", evt.DeviceId, payload);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Invalid event payload for {DeviceId}: {Payload}", deviceId, payload);
+            }
+        }
+
+        private void HandleCommandResponse(string deviceId, string payload)
+        {
+            CommandResponseEnvelope? envelope;
+            try
+            {
+                envelope = JsonSerializer.Deserialize<CommandResponseEnvelope>(payload);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Invalid command response for {DeviceId}", deviceId);
+                return;
+            }
+            if (envelope == null) return;
+
+            if (_pendingCommands.TryRemove(envelope.Id, out var pending))
+            {
+                if (pending.Cmd != envelope.Cmd)
+                    _logger.LogWarning("Command response cmd mismatch for id {Id}: expected {Expected}, got {Actual}", envelope.Id, pending.Cmd, envelope.Cmd);
+                pending.Tcs.TrySetResult(envelope);
             }
             else
             {
-                _logger.LogWarning("Unknown command: {Command}", command);
+                _logger.LogWarning("Unexpected/late command response from {DeviceId}: id={Id} cmd={Cmd}", deviceId, envelope.Id, envelope.Cmd);
+            }
+        }
+
+        public async Task<CommandResponseEnvelope> SendCommandAsync(string deviceId, DeviceCommand cmd, object? @params, TimeSpan timeout, CancellationToken cancellationToken = default)
+        {
+            var id = Interlocked.Increment(ref _nextRequestId);
+            var tcs = new TaskCompletionSource<CommandResponseEnvelope>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var pending = new PendingCommand { DeviceId = deviceId, Cmd = (int)cmd, Tcs = tcs };
+
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(timeout);
+            pending.TimeoutRegistration = cts.Token.Register(() =>
+            {
+                if (_pendingCommands.TryRemove(id, out _))
+                    tcs.TrySetException(new TimeoutException($"No response for cmd={cmd} id={id} device={deviceId} within {timeout}"));
+            });
+
+            _pendingCommands[id] = pending;
+
+            try
+            {
+                var envelope = new CommandRequestEnvelope { Id = id, Cmd = (int)cmd, Params = @params };
+                var options = new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull };
+                var payload = JsonSerializer.Serialize(envelope, options);
+
+                var published = await PublishAsync($"iocloud/{deviceId}/commands/request", payload);
+                if (!published)
+                    throw new InvalidOperationException($"Failed to publish command {cmd} to device {deviceId}");
+
+                return await tcs.Task;
+            }
+            finally
+            {
+                _pendingCommands.TryRemove(id, out _);
+                pending.TimeoutRegistration.Dispose();
+                cts.Dispose();
             }
         }
 
         private async Task HandleConnected(MqttClientConnectedEventArgs args)
         {
-            await SubscribeAsync("iocloud/response/#");
+            await SubscribeAsync("iocloud/+/heartbeat");
+            await SubscribeAsync("iocloud/+/telemetry");
+            await SubscribeAsync("iocloud/+/events");
+            await SubscribeAsync("iocloud/+/commands/response");
         }
 
         private Task HandleDisconnected(MqttClientDisconnectedEventArgs args)

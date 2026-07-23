@@ -10,6 +10,8 @@ namespace VanadiumAPI.DTO
         public float? Gain { get; set; }
         public float? Offset { get; set; }
         public int? Multiplier { get; set; }
+        public int? SamplingMs { get; set; }
+        public bool? Enabled { get; set; }
         public int? DisplayedType { get; set; }
         public AlarmSeverity? AlarmSeverity { get; set; }
         public float? MaxAlarm { get; set; }

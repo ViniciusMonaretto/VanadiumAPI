@@ -7,5 +7,7 @@ namespace VanadiumAPI.Mqtt
         public string ClientId { get; set; } = "VanadiumAPI";
         public string? Username { get; set; }
         public string? Password { get; set; }
+        public int DefaultCommandTimeoutSeconds { get; set; } = 10;
+        public int HeartbeatTimeoutSeconds { get; set; } = 300;
     }
 }

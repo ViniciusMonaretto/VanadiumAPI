@@ -12,6 +12,7 @@ using VanadiumAPI.Mqtt;
 using VanadiumAPI.SensorDataSaver;
 using VanadiumAPI.Services;
 using VanadiumAPI.Services.AlarmRegistry;
+using VanadiumAPI.Services.DeviceCommands;
 using VanadiumAPI.DTOs;
 using Shared.Models;
 
@@ -89,7 +90,10 @@ builder.Services.AddScoped<IPanelReadingService, PanelReadingService>();
 builder.Services.AddScoped<IPanelService, PanelService>();
 builder.Services.AddSingleton<IHubBroadcastService, HubBroadcastService>();
 builder.Services.AddSingleton<IGatewayServerService, GatewayServerService>();
+builder.Services.AddHostedService<GatewayHeartbeatMonitorService>();
 builder.Services.AddSingleton<IAlarmRegistryService, AlarmRegistryService>();
+builder.Services.AddSingleton<IDeviceInfoStore, DeviceInfoStore>();
+builder.Services.AddSingleton<IDeviceCommandService, DeviceCommandService>();
 
 // SignalR (detailed errors to client only in Development — never in Production)
 builder.Services.AddSignalR(options =>

@@ -12,6 +12,8 @@ namespace VanadiumAPI.DTO
         public float Gain { get; set; } = 1;
         public float Offset { get; set; } = 0;
         public int Multiplier { get; set; } = 1;
+        public int SamplingMs { get; set; } = 1000;
+        public bool Enabled { get; set; } = true;
         public PanelType Type { get; set; }
     }
 }

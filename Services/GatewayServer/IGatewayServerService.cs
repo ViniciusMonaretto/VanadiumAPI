@@ -13,5 +13,6 @@ namespace VanadiumAPI.Services
         Task AddGatewaySystemInfoAsync(string gatewayId, SystemMessageModel systemData);
         Task UpdateGatewayLastActivityAsync(string gatewayId);
         Task<IReadOnlyDictionary<string, SystemMessageModel>> GetGatewayInfoByEnterpriseAsync(int enterpriseId);
+        Task CheckGatewayHeartbeatTimeoutsAsync(TimeSpan timeout);
     }
 }

@@ -57,6 +57,8 @@ namespace VanadiumAPI.Services
                     Gain = dto.Gain,
                     Offset = dto.Offset,
                     Multiplier = dto.Multiplier,
+                    SamplingMs = dto.SamplingMs,
+                    Enabled = dto.Enabled,
                     Type = dto.Type
                 };
                 var created = await _repository.CreatePanelAsync(panel);
@@ -110,6 +112,8 @@ namespace VanadiumAPI.Services
             if (dto.Gain.HasValue) panel.Gain = dto.Gain.Value;
             if (dto.Offset.HasValue) panel.Offset = dto.Offset.Value;
             if (dto.Multiplier.HasValue) panel.Multiplier = dto.Multiplier.Value;
+            if (dto.SamplingMs.HasValue) panel.SamplingMs = dto.SamplingMs.Value;
+            if (dto.Enabled.HasValue) panel.Enabled = dto.Enabled.Value;
             if (dto.DisplayedType.HasValue) panel.DisplayedType = dto.DisplayedType.Value;
 
             if (!await _repository.UpdatePanelAsync(panel))

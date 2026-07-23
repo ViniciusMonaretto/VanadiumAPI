@@ -1,38 +1,35 @@
 """
-MQTT test for DbConfig/config_temp.json:
-  60 temperature (°C), 4 pressure (kPa), 4 energy readings on one gateway (W, A, V, PF).
+MQTT test for DbConfig/config_temp.json, using the new iocloud protocol:
+  60 temperature (C), 4 pressure (kPa), 4 energy readings on one gateway (W, A, V, PF).
 
-Published JSON shapes (numeric fields vary at runtime):
+Published/subscribed topics (numeric fields vary at runtime):
 
-iocloud/response/{gatewayId}/sensor/report — periodic reading:
+iocloud/{deviceId}/heartbeat:
+{"device_id": "1C69209DFC01", "ip": "192.168.3.79", "uptime_ms": 200060}
+
+iocloud/{deviceId}/telemetry:
 {
-  "timestamp": 1734567890.123456,
-  "sensors": [
-    {"active": true, "value": 22.417}
-  ]
-}
-
-Multi-channel gateway (energy) publishes four values (indices 0..3).
-
-iocloud/response/{gatewayId}/command — system status (command_index 2):
-{
-  "command_index": 2,
-  "command_status": 0,
   "device_id": "1C69209DFC01",
-  "ip_address": "192.168.3.79",
-  "uptime": 19510,
-  "sensors": [
-    {"gain": 1, "offset": 0, "index": 0, "state": 0, "unit": "°C"}
-  ]
+  "timestamp": "2026-07-16T14:32:00Z",
+  "readings": [{"sensor_id": 0, "type": "temperature", "value": 22.417}]
 }
+Disabled sensors (SET_SENSOR_CONFIG(_BULK) enabled=false) are simply omitted from readings.
+
+iocloud/{deviceId}/commands/request (host -> device):
+{"id": 0, "cmd": 1, "params": {}}
+
+iocloud/{deviceId}/commands/response (device -> host):
+{"cmd": 1, "id": 0, "data": {}, "status": "ok"}
+
+Commands: 1=REBOOT, 2=SET_SENSOR_CONFIG, 3=GET_SENSORS, 4=SET_SENSOR_CONFIG_BULK, 5=GET_DEVICE_INFO.
 """
 
 import json
 import random
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import paho.mqtt.client as mqtt
 
@@ -50,6 +47,15 @@ PANEL_TYPE_META: Dict[int, Dict[str, Any]] = {
     4: {"label": "current", "unit": "A", "base": 5.65, "jitter": (-0.18, 0.18)},
     5: {"label": "voltage", "unit": "V", "base": 220.0, "jitter": (-2.0, 2.0)},
     6: {"label": "power_factor", "unit": "PF", "base": 0.94, "jitter": (-0.02, 0.02)},
+}
+
+CAPABILITIES_BY_TYPE: Dict[int, Dict[str, Any]] = {
+    0: {"range_min": -40, "range_max": 125, "resolution": 0.01},
+    1: {"range_min": 0, "range_max": 1000, "resolution": 0.1},
+    3: {"range_min": 0, "range_max": 5000, "resolution": 0.1},
+    4: {"range_min": 0, "range_max": 100, "resolution": 0.01},
+    5: {"range_min": 0, "range_max": 300, "resolution": 0.1},
+    6: {"range_min": 0, "range_max": 1, "resolution": 0.001},
 }
 
 
@@ -107,127 +113,178 @@ def load_gateways_from_config(path: Path) -> List[Dict[str, Any]]:
 
 GATEWAYS = load_gateways_from_config(CONFIG_PATH)
 GATEWAY_BY_ID = {g["id"]: g for g in GATEWAYS}
+START_TIME = time.monotonic()
+
+
+def init_state() -> Dict[str, Dict[int, Dict[str, Any]]]:
+    state: Dict[str, Dict[int, Dict[str, Any]]] = {}
+    for g in GATEWAYS:
+        state[g["id"]] = {
+            ch["index"]: {"gain": 1.0, "offset": 0.0, "sampling_ms": 1000, "enabled": True}
+            for ch in g["channels"]
+        }
+    return state
+
+
+# Simulated per-sensor config, mutated via SET_SENSOR_CONFIG / SET_SENSOR_CONFIG_BULK.
+STATE = init_state()
+
+
+def capabilities_for_channel(ch: Dict[str, Any]) -> Dict[str, Any]:
+    caps = dict(CAPABILITIES_BY_TYPE.get(ch["panel_type"], {"range_min": 0, "range_max": 100, "resolution": 0.1}))
+    caps["unit"] = ch["unit"]
+    return caps
+
+
+def apply_sensor_config(gateway_id: str, sensor_id: int, params: Dict[str, Any]) -> None:
+    st = STATE[gateway_id][sensor_id]
+    for key in ("gain", "offset", "sampling_ms", "enabled"):
+        if key in params:
+            st[key] = params[key]
+
+
+def handle_reboot(gateway_id: str, params: Dict[str, Any]) -> Tuple[Dict[str, Any], str]:
+    return {}, "ok"
+
+
+def handle_get_sensors(gateway_id: str, params: Dict[str, Any]) -> Tuple[Dict[str, Any], str]:
+    cfg = GATEWAY_BY_ID.get(gateway_id)
+    if not cfg:
+        return {}, "error"
+
+    sensors = []
+    for ch in sorted(cfg["channels"], key=lambda c: c["index"]):
+        st = STATE[gateway_id][ch["index"]]
+        sensors.append(
+            {
+                "sensor_id": ch["index"],
+                "type": ch["label"],
+                "capabilities": capabilities_for_channel(ch),
+                "config": {
+                    "offset": st["offset"],
+                    "gain": st["gain"],
+                    "sampling_ms": st["sampling_ms"],
+                    "enabled": st["enabled"],
+                },
+            }
+        )
+    return {"sensors": sensors}, "ok"
+
+
+def handle_set_sensor_config(gateway_id: str, params: Dict[str, Any]) -> Tuple[Dict[str, Any], str]:
+    sensor_id = params.get("sensor_id")
+    if gateway_id not in STATE or sensor_id not in STATE[gateway_id]:
+        return {"errors": [{"sensor_id": sensor_id, "error": "unknown sensor_id"}]}, "error"
+    apply_sensor_config(gateway_id, sensor_id, params)
+    return {}, "ok"
+
+
+def handle_set_sensor_config_bulk(gateway_id: str, params: Dict[str, Any]) -> Tuple[Dict[str, Any], str]:
+    sensors = params.get("sensors", [])
+    known = STATE.get(gateway_id, {})
+    unknown = [s for s in sensors if s.get("sensor_id") not in known]
+    if unknown:
+        errors = [{"sensor_id": s.get("sensor_id"), "error": "unknown sensor_id"} for s in unknown]
+        return {"errors": errors}, "error"
+
+    for s in sensors:
+        apply_sensor_config(gateway_id, s["sensor_id"], s)
+    return {}, "ok"
+
+
+def handle_get_device_info(gateway_id: str, params: Dict[str, Any]) -> Tuple[Dict[str, Any], str]:
+    return {"model": "iocloud-sim", "firmware": "0.0.1-sim", "serial": gateway_id}, "ok"
+
+
+COMMAND_HANDLERS = {
+    1: handle_reboot,
+    2: handle_set_sensor_config,
+    3: handle_get_sensors,
+    4: handle_set_sensor_config_bulk,
+    5: handle_get_device_info,
+}
+
+
+def command_request_device_id(topic: str) -> Optional[str]:
+    parts = topic.split("/")
+    if len(parts) == 4 and parts[0] == "iocloud" and parts[2] == "commands" and parts[3] == "request":
+        return parts[1]
+    return None
 
 
 def on_connect(mqtt_client, userdata, flags, rc):
     if rc == 0:
         print(f"Connected successfully ({len(GATEWAYS)} gateways from {CONFIG_PATH.name})")
-        mqtt_client.subscribe("iocloud/request/#")
+        mqtt_client.subscribe("iocloud/+/commands/request")
     else:
         print(f"Connection failed with code {rc}")
 
 
-def request_gateway_id(topic: str) -> Optional[str]:
-    parts = topic.split("/")
-    if len(parts) >= 4 and parts[0] == "iocloud" and parts[1] == "request":
-        return parts[2]
-    return None
-
-
-def unit_for_sensor_id(gateway_id: str, sensor_id: Any) -> str:
-    cfg = GATEWAY_BY_ID.get(gateway_id)
-    if not cfg:
-        return "°C"
-    sid = str(sensor_id)
-    for ch in cfg["channels"]:
-        if str(ch["index"]) == sid:
-            return ch["unit"]
-    return cfg["channels"][0]["unit"]
-
-
-def send_gateway_status(mqtt_client, gateway_id: str):
-    cfg = GATEWAY_BY_ID.get(gateway_id)
-    if not cfg:
-        print(f"Unknown gateway id for status: {gateway_id}")
+def on_message(mqtt_client, userdata, msg):
+    if not msg.payload:
         return
 
-    panels = []
-    for ch in sorted(cfg["channels"], key=lambda c: c["index"]):
-        panels.append(
-            {
-                "gain": 1,
-                "offset": 0,
-                "index": ch["index"],
-                "state": 0,
-                "unit": ch["unit"],
-            }
-        )
-    status_payload = {
-        "command_index": 2,
-        "command_status": 0,
-        "device_id": gateway_id,
-        "ip_address": "192.168.3.79",
-        "uptime": 19510,
-        "sensors": panels,
-    }
-    status_topic = f"iocloud/response/{gateway_id}/command"
-    mqtt_client.publish(status_topic, json.dumps(status_payload))
-    print(f"Sent status ({cfg['label']}) to {status_topic}")
-
-
-def on_message(mqtt_client, userdata, msg):
-    print(f"Received command on topic: {msg.topic}")
-    print(f"Payload: {msg.payload}")
-
-    gw = request_gateway_id(msg.topic)
-    response_topic = msg.topic.replace("iocloud/", "iocloud/", 1)
-    response_topic = response_topic.replace("request/", "response/", 1)
-
-    if not msg.payload:
-        print(f"Empty payload received on topic: {msg.topic}")
+    gateway_id = command_request_device_id(msg.topic)
+    if gateway_id is None:
+        print(f"Ignoring message on unexpected topic: {msg.topic}")
         return
 
     try:
-        obj = json.loads(msg.payload)
-        print(f"Payload content: {msg.payload}")
+        req = json.loads(msg.payload)
     except json.JSONDecodeError as e:
         print(f"Invalid JSON payload on topic {msg.topic}: {e}")
-        print(f"Payload content: {msg.payload}")
         return
 
-    if gw and obj.get("command") == 2:
-        send_gateway_status(mqtt_client, gw)
-        return
+    req_id = req.get("id")
+    cmd = req.get("cmd")
+    params = req.get("params") or {}
+    print(f"Received cmd={cmd} id={req_id} from {gateway_id}: {params}")
 
-    if "params" not in obj:
-        print(f"Missing 'params' field in payload on topic: {msg.topic}")
-        return
+    handler = COMMAND_HANDLERS.get(cmd)
+    if handler is None:
+        data, status = {}, "error"
+    else:
+        data, status = handler(gateway_id, params)
 
-    if not all(key in obj["params"] for key in ["sensor_id", "gain", "offset"]):
-        print(f"Missing required fields in params on topic: {msg.topic}")
-        return
+    response = {"cmd": cmd, "id": req_id, "data": data, "status": status}
+    response_topic = f"iocloud/{gateway_id}/commands/response"
+    mqtt_client.publish(response_topic, json.dumps(response))
+    print(f"Responded to {response_topic}: {response}")
 
-    sensor_id = obj["params"]["sensor_id"]
-    unit = unit_for_sensor_id(gw, sensor_id) if gw else "°C"
 
-    obj["command_index"] = 1
-    obj["command_status"] = 0
-    obj["sensor_id"] = sensor_id
-    obj["gain"] = obj["params"]["gain"]
-    obj["offset"] = obj["params"]["offset"]
-    obj["unit"] = unit
-
-    mqtt_client.publish(response_topic, json.dumps(obj))
-    print(f"Responded to topic: {response_topic}")
+def publish_heartbeat(mqtt_client):
+    uptime_ms = int((time.monotonic() - START_TIME) * 1000)
+    for g in GATEWAYS:
+        payload = {"device_id": g["id"], "ip": "192.168.3.79", "uptime_ms": uptime_ms}
+        topic = f"iocloud/{g['id']}/heartbeat"
+        mqtt_client.publish(topic, json.dumps(payload))
+    print(f"Sent heartbeat (uptime_ms={uptime_ms}) for {len(GATEWAYS)} gateways")
 
 
 def publish_readings(mqtt_client):
     for g in GATEWAYS:
-        sensors_out = []
+        readings = []
         parts = []
         for ch in sorted(g["channels"], key=lambda c: c["index"]):
+            st = STATE[g["id"]][ch["index"]]
+            if not st["enabled"]:
+                continue
+
             lo, hi = ch["jitter"]
             varied = round(ch["base"] + random.uniform(lo, hi), 4)
             if ch["panel_type"] == 6:
                 varied = max(0.0, min(1.0, varied))
-            sensors_out.append({"active": True, "value": varied})
-            parts.append(f"{ch['name']}={varied}{ch['unit']}")
+            calibrated = round(varied * st["gain"] + st["offset"], 4)
+
+            readings.append({"sensor_id": ch["index"], "type": ch["label"], "value": calibrated})
+            parts.append(f"{ch['name']}={calibrated}{ch['unit']}")
 
         payload = {
-            "timestamp": datetime.now().timestamp(),
-            "sensors": sensors_out,
+            "device_id": g["id"],
+            "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+            "readings": readings,
         }
-        topic = f"iocloud/response/{g['id']}/sensor/report"
+        topic = f"iocloud/{g['id']}/telemetry"
         mqtt_client.publish(topic, json.dumps(payload))
         print(f"[{g['label']}] {', '.join(parts)} -> {topic}")
 
@@ -238,13 +295,11 @@ client.on_message = on_message
 
 client.connect(BROKER, PORT)
 client.loop_start()
-client.subscribe("iocloud/request/#")
+client.subscribe("iocloud/+/commands/request")
 
 try:
-    for g in GATEWAYS:
-        send_gateway_status(client, g["id"])
-
     while True:
+        publish_heartbeat(client)
         publish_readings(client)
         time.sleep(60)
 except KeyboardInterrupt:
