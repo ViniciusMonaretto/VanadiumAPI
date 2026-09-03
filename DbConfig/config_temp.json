@@ -194,6 +194,9 @@
     },
     {
       "GatewayId": "1C69209DFC61"
+    },
+    {
+      "GatewayId": "1C69209DFH01"
     }
   ],
   "Groups": [
@@ -211,6 +214,10 @@
     },
     {
       "Name": "energia",
+      "EnterpriseId": 1
+    },
+    {
+      "Name": "umidade",
       "EnterpriseId": 1
     }
   ],
@@ -962,6 +969,17 @@
       "Offset": 0,
       "Multiplier": 1,
       "Type": 6
+    },
+    {
+      "Name": "Umidade 01",
+      "GatewayId": "1C69209DFH01",
+      "GroupId": 5,
+      "Index": "0",
+      "Color": "teal",
+      "Gain": 1,
+      "Offset": 0,
+      "Multiplier": 1,
+      "Type": 7
     }
   ],
   "Alarms": [],

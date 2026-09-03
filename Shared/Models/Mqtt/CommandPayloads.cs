@@ -59,6 +59,23 @@ namespace Shared.Models.Mqtt
         public bool Enabled { get; set; }
     }
 
+    // Maps the device-reported sensor "type" string (GET_SENSORS) to the panel type enum.
+    public static class SensorTypeMapper
+    {
+        public static PanelType? ToPanelType(string sensorType) => sensorType switch
+        {
+            "temperature" => PanelType.Temperature,
+            "pressure" => PanelType.Pressure,
+            "flow" => PanelType.Flow,
+            "power" => PanelType.Power,
+            "current" => PanelType.Current,
+            "voltage" => PanelType.Voltage,
+            "power_factor" => PanelType.PowerFactor,
+            "humidity" => PanelType.Humidity,
+            _ => null,
+        };
+    }
+
     // cmd=4 SET_SENSOR_CONFIG_BULK params
     public class SetSensorConfigBulkParams
     {

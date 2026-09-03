@@ -47,6 +47,7 @@ PANEL_TYPE_META: Dict[int, Dict[str, Any]] = {
     4: {"label": "current", "unit": "A", "base": 5.65, "jitter": (-0.18, 0.18)},
     5: {"label": "voltage", "unit": "V", "base": 220.0, "jitter": (-2.0, 2.0)},
     6: {"label": "power_factor", "unit": "PF", "base": 0.94, "jitter": (-0.02, 0.02)},
+    7: {"label": "humidity", "unit": "%", "base": 45.0, "jitter": (-2.0, 2.0)},
 }
 
 CAPABILITIES_BY_TYPE: Dict[int, Dict[str, Any]] = {
@@ -56,6 +57,7 @@ CAPABILITIES_BY_TYPE: Dict[int, Dict[str, Any]] = {
     4: {"range_min": 0, "range_max": 100, "resolution": 0.01},
     5: {"range_min": 0, "range_max": 300, "resolution": 0.1},
     6: {"range_min": 0, "range_max": 1, "resolution": 0.001},
+    7: {"range_min": 0, "range_max": 100, "resolution": 0.1},
 }
 
 

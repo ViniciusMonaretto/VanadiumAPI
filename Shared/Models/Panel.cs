@@ -9,6 +9,7 @@ namespace Shared.Models
         Current = 4,
         Voltage = 5,
         PowerFactor = 6,
+        Humidity = 7,
     }
 
     public class Panel

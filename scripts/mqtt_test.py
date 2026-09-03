@@ -1,173 +1,173 @@
 """
-MQTT test: three flow gateways (L/s).
+MQTT test: three flow gateways (L/s), using the current iocloud protocol.
 
-Published JSON shapes (numeric fields vary at runtime):
+Published/subscribed topics (numeric fields vary at runtime):
 
-iocloud/response/{gatewayId}/sensor/report — periodic reading:
+iocloud/{deviceId}/heartbeat:
+{"device_id": "1C69209DFC01", "ip": "192.168.3.79", "uptime_ms": 200060}
+
+iocloud/{deviceId}/telemetry:
 {
-  "timestamp": 1734567890.123456,
-  "sensors": [
-    {"active": true, "value": 1.05}
-  ]
-}
-
-iocloud/response/{gatewayId}/command — system status (command_index 2):
-{
-  "command_index": 2,
-  "command_status": 0,
   "device_id": "1C69209DFC01",
-  "ip_address": "192.168.3.79",
-  "uptime": 19510,
-  "sensors": [
-    {"gain": 1, "offset": 0, "index": 0, "state": 0, "unit": "L/s"}
-  ]
+  "timestamp": "2026-07-16T14:32:00Z",
+  "readings": [{"sensor_id": 0, "type": "flow", "value": 1.05}]
 }
+
+iocloud/{deviceId}/commands/request (host -> device):
+{"id": 0, "cmd": 3, "params": {}}
+
+iocloud/{deviceId}/commands/response (device -> host):
+{
+  "cmd": 3,
+  "id": 0,
+  "data": {
+    "sensors": [
+      {
+        "sensor_id": 0,
+        "type": "flow",
+        "capabilities": {"unit": "L/s", "range_min": 0, "range_max": 50, "resolution": 0.01},
+        "config": {"offset": 0, "gain": 1, "sampling_ms": 5000, "enabled": True}
+      }
+    ]
+  },
+  "status": "ok"
+}
+
+Commands: 1=REBOOT, 3=GET_SENSORS. Other commands are answered with status "error"
+(this script only simulates a single flow sensor per gateway, no config mutation).
 """
 
-import time
-import random
 import json
-from datetime import datetime
+import random
+import time
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional, Tuple
+
 import paho.mqtt.client as mqtt
 
-# Define the broker and port
+# Broker
 BROKER = 'localhost'  # 'broker.hivemq.com'  # "mqtt.eclipseprojects.io"
 PORT = 1883
-MESSAGES_TO_SEND = 1
 
-# Base sensor values
-base_sensors = [
-    {"value": 1, "active": True, "unit": "L/s"},
-    {"value": 1.23, "active": True, "unit": "L/s"},
-    {"value": 2, "active": True, "unit": "L/s"}
+# One flow sensor per gateway.
+GATEWAYS = [
+    {"id": "1C69209DFC01", "base": 1.0},
+    {"id": "1C69209DFC02", "base": 1.23},
+    {"id": "1C69209DFC03", "base": 2.0},
 ]
+GATEWAY_BY_ID = {g["id"]: g for g in GATEWAYS}
+START_TIME = time.monotonic()
 
-# Callback for successful connection
+FLOW_CAPABILITIES = {"unit": "L/s", "range_min": 0, "range_max": 50, "resolution": 0.01}
+FLOW_CONFIG = {"offset": 0, "gain": 1, "sampling_ms": 5000, "enabled": True}
+
+
+def handle_reboot(gateway_id: str, params: Dict[str, Any]) -> Tuple[Dict[str, Any], str]:
+    return {}, "ok"
+
+
+def handle_get_sensors(gateway_id: str, params: Dict[str, Any]) -> Tuple[Dict[str, Any], str]:
+    if gateway_id not in GATEWAY_BY_ID:
+        return {}, "error"
+
+    sensors = [
+        {
+            "sensor_id": 0,
+            "type": "flow",
+            "capabilities": FLOW_CAPABILITIES,
+            "config": FLOW_CONFIG,
+        }
+    ]
+    return {"sensors": sensors}, "ok"
+
+
+COMMAND_HANDLERS = {
+    1: handle_reboot,
+    3: handle_get_sensors,
+}
+
+
+def command_request_device_id(topic: str) -> Optional[str]:
+    parts = topic.split("/")
+    if len(parts) == 4 and parts[0] == "iocloud" and parts[2] == "commands" and parts[3] == "request":
+        return parts[1]
+    return None
 
 
 def on_connect(mqtt_client, userdata, flags, rc):
     if rc == 0:
-        print("Connected successfully")
-        # Subscribe to the command topic
-        mqtt_client.subscribe("iocloud/request/#")
+        print(f"Connected successfully ({len(GATEWAYS)} flow gateways)")
+        mqtt_client.subscribe("iocloud/+/commands/request")
     else:
         print(f"Connection failed with code {rc}")
 
 
-# Function to create and send gateway status message
-def send_gateway_status(mqtt_client, response_topic):
-    panels = []
-    counter = 0
-    for sensor_data in base_sensors:
-        panel = {
-            "gain": 1,
-            "offset": 0,
-            "index": 0,
-            "state": 0,
-            "unit": sensor_data["unit"]
-        }
-        panels.append(panel)
-
-        status_payload = {
-            "command_index": 2,
-            "command_status": 0,
-            "device_id": "1C69209DFC0" + str(1 + counter),
-            "ip_address": "192.168.3.79",
-            "uptime": 19510,
-            "sensors": panels
-        }
-
-        counter += 1
-
-        status_topic = response_topic
-        mqtt_client.publish(status_topic, json.dumps(status_payload))
-    print(f"Sent status message to {status_topic}")
-
-
-# Callback for receiving messages
-
-
 def on_message(mqtt_client, userdata, msg):
-    print(f"Received command on topic: {msg.topic}")
-    print(f"Payload: {msg.payload}")
-
-    # Handle other command topics
-    response_topic = msg.topic.replace("iocloud/", "iocloud/", 1)
-    response_topic = response_topic.replace("request/", "response/", 1)
-
-    # Check if payload is empty or invalid
     if not msg.payload:
-        print(f"Empty payload received on topic: {msg.topic}")
+        return
+
+    gateway_id = command_request_device_id(msg.topic)
+    if gateway_id is None:
+        print(f"Ignoring message on unexpected topic: {msg.topic}")
         return
 
     try:
-        obj = json.loads(msg.payload)
-        print(f"Payload content: {msg.payload}")
+        req = json.loads(msg.payload)
     except json.JSONDecodeError as e:
         print(f"Invalid JSON payload on topic {msg.topic}: {e}")
-        print(f"Payload content: {msg.payload}")
         return
 
-    if obj["command"] == 2:
-        send_gateway_status(
-            mqtt_client, "iocloud/response/1C69209DFC08/command")
-        return
+    req_id = req.get("id")
+    cmd = req.get("cmd")
+    params = req.get("params") or {}
+    print(f"Received cmd={cmd} id={req_id} from {gateway_id}: {params}")
 
-    # Check if required fields exist
-    if "params" not in obj:
-        print(f"Missing 'params' field in payload on topic: {msg.topic}")
-        return
+    handler = COMMAND_HANDLERS.get(cmd)
+    if handler is None:
+        data, status = {}, "error"
+    else:
+        data, status = handler(gateway_id, params)
 
-    if not all(key in obj["params"] for key in ["sensor_id", "gain", "offset"]):
-        print(f"Missing required fields in params on topic: {msg.topic}")
-        return
-
-    obj["command_index"] = 1
-    obj["command_status"] = 0
-    obj["sensor_id"] = obj["params"]["sensor_id"]
-    obj["gain"] = obj["params"]["gain"]
-    obj["offset"] = obj["params"]["offset"]
-    obj["unit"] = "°C"
-
-    mqtt_client.publish(response_topic, json.dumps(obj))
-    print(f"Responded to topic: {response_topic}")
+    response = {"cmd": cmd, "id": req_id, "data": data, "status": status}
+    response_topic = f"iocloud/{gateway_id}/commands/response"
+    mqtt_client.publish(response_topic, json.dumps(response))
+    print(f"Responded to {response_topic}: {response}")
 
 
-# Create an MQTT client instance
+def publish_heartbeat(mqtt_client):
+    uptime_ms = int((time.monotonic() - START_TIME) * 1000)
+    for g in GATEWAYS:
+        payload = {"device_id": g["id"], "ip": "192.168.3.79", "uptime_ms": uptime_ms}
+        topic = f"iocloud/{g['id']}/heartbeat"
+        mqtt_client.publish(topic, json.dumps(payload))
+    print(f"Sent heartbeat (uptime_ms={uptime_ms}) for {len(GATEWAYS)} gateways")
+
+
+def publish_readings(mqtt_client):
+    for g in GATEWAYS:
+        varied_value = round(g["base"] + random.uniform(-0.2, 0.2), 2)
+        payload = {
+            "device_id": g["id"],
+            "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+            "readings": [{"sensor_id": 0, "type": "flow", "value": varied_value}],
+        }
+        topic = f"iocloud/{g['id']}/telemetry"
+        mqtt_client.publish(topic, json.dumps(payload))
+        print(f"Sent {varied_value} L/s to {topic}")
+
+
 client = mqtt.Client()
-
-# Assign callbacks
 client.on_connect = on_connect
 client.on_message = on_message
 
-# Connect and start the loop
 client.connect(BROKER, PORT)
 client.loop_start()
-
-client.subscribe("iocloud/request/#")
+client.subscribe("iocloud/+/commands/request")
 
 try:
-    count = 0
-    for sensor in base_sensors:
-        send_gateway_status(client, f"iocloud/response/1C69209DFC0{1 + count}/command")
-        count += 1
-
     while True:
-        sensors = []
-        count = 0
-        for sensor in base_sensors:
-            varied_value = round(
-                sensor["value"] + random.uniform(-0.2, 0.2), 2)
-            payload = {
-                "timestamp": datetime.now().timestamp(),
-                "sensors": [{"active": True, "value": varied_value}],
-            }
-            topic = f"iocloud/response/1C69209DFC0{1 + count}/sensor/report"
-            payload_json = json.dumps(payload)
-            print(f"Sending MQTT message to {topic}")
-            client.publish(topic, payload_json)
-            print("Sent MQTT message")
-            count += 1
+        publish_heartbeat(client)
+        publish_readings(client)
         time.sleep(60)
 except KeyboardInterrupt:
     print("Stopping the client.")

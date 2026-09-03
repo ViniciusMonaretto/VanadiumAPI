@@ -20,5 +20,6 @@ namespace Shared.Models
         public string? IpAddress { get; set; }
         public DateTime? LastActivity { get; set; }
         public bool IsConnected { get; set; }
+        public List<PanelType> AvailableSensors { get; set; } = new();
     }
 }

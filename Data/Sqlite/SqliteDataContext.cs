@@ -22,10 +22,14 @@ namespace Data.Sqlite
             EnsureAlarmSeverityColumn();
             EnsurePanelSamplingMsColumn();
             EnsurePanelEnabledColumn();
+            EnsureGatewayIsSetupColumn();
+            EnsureGatewayAvailableSensorsColumn();
             if (Users != null && !Users.Any())
                 SeedDefaultAdmin();
             if (Groups != null && Panels != null && !Groups.Any() && !Panels.Any())
                 SeedFromJson();
+            if (Enterprises != null && !Enterprises.Any())
+                SeedDefaultEnterprise();
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
@@ -106,6 +110,12 @@ namespace Data.Sqlite
             builder.Entity<Enterprise>()
                 .HasIndex(x => x.Name)
                 .IsUnique();
+
+            builder.Entity<Gateway>()
+                .Property(g => g.AvailableSensors)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<PanelType>>(v, (JsonSerializerOptions?)null) ?? new List<PanelType>());
         }
 
         /// <summary>SQLite <see cref="Database.EnsureCreated"/> does not add columns; extend existing DBs.</summary>
@@ -192,6 +202,64 @@ namespace Data.Sqlite
             catch (Exception ex)
             {
                 Console.WriteLine("EnsurePanelEnabledColumn: " + ex.Message);
+            }
+        }
+
+        /// <summary>SQLite <see cref="Database.EnsureCreated"/> does not add columns; extend existing DBs.</summary>
+        private void EnsureGatewayIsSetupColumn()
+        {
+            try
+            {
+                var connection = Database.GetDbConnection();
+                var wasOpen = connection.State == ConnectionState.Open;
+                if (!wasOpen)
+                    Database.OpenConnection();
+                try
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "SELECT 1 FROM pragma_table_info('Gateways') WHERE name='IsSetup' LIMIT 1";
+                    if (cmd.ExecuteScalar() != null)
+                        return;
+                    Database.ExecuteSqlRaw("ALTER TABLE Gateways ADD COLUMN IsSetup INTEGER NOT NULL DEFAULT 0");
+                }
+                finally
+                {
+                    if (!wasOpen)
+                        Database.CloseConnection();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("EnsureGatewayIsSetupColumn: " + ex.Message);
+            }
+        }
+
+        /// <summary>SQLite <see cref="Database.EnsureCreated"/> does not add columns; extend existing DBs.</summary>
+        private void EnsureGatewayAvailableSensorsColumn()
+        {
+            try
+            {
+                var connection = Database.GetDbConnection();
+                var wasOpen = connection.State == ConnectionState.Open;
+                if (!wasOpen)
+                    Database.OpenConnection();
+                try
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "SELECT 1 FROM pragma_table_info('Gateways') WHERE name='AvailableSensors' LIMIT 1";
+                    if (cmd.ExecuteScalar() != null)
+                        return;
+                    Database.ExecuteSqlRaw("ALTER TABLE Gateways ADD COLUMN AvailableSensors TEXT NOT NULL DEFAULT '[]'");
+                }
+                finally
+                {
+                    if (!wasOpen)
+                        Database.CloseConnection();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("EnsureGatewayAvailableSensorsColumn: " + ex.Message);
             }
         }
 
@@ -311,6 +379,33 @@ namespace Data.Sqlite
             catch (Exception ex)
             {
                 Console.WriteLine("Error creating default admin user: " + ex.Message);
+            }
+        }
+
+        private void SeedDefaultEnterprise()
+        {
+            try
+            {
+                if (Enterprises.Any()) return;
+                var defaultUser = new UserInfo
+                {
+                    Name = "User",
+                    Email = "user@user.com",
+                    UserName = "user",
+                    UserType = UserType.User,
+                    PasswordHash = AuthService.HashPassword("user"),
+                };
+                Users.Add(defaultUser);
+                SaveChanges();
+
+                var defaultEnterprise = new Enterprise { Name = "Enterprise", ManagerId = defaultUser.Id, Manager = defaultUser };
+                defaultEnterprise.Users.Add(defaultUser);
+                Enterprises.Add(defaultEnterprise);
+                SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error creating default enterprise: " + ex.Message);
             }
         }
     }

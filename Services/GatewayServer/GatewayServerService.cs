@@ -3,7 +3,9 @@ using Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shared.Models;
+using Shared.Models.Mqtt;
 using VanadiumAPI.DTO;
+using VanadiumAPI.Services.DeviceCommands;
 
 namespace VanadiumAPI.Services
 {
@@ -43,7 +45,8 @@ namespace VanadiumAPI.Services
                         GatewayId = g.GatewayId,
                         IsConnected = false,
                         Uptime = null,
-                        IpAddress = null
+                        IpAddress = null,
+                        AvailableSensors = g.AvailableSensors ?? new List<PanelType>()
                     };
                 }
                 _initialized = true;
@@ -80,7 +83,62 @@ namespace VanadiumAPI.Services
 
             await AddGatewayToStoreAsync(enterpriseId, gatewayId);
             await _hubBroadcast.BroadcastGatewayAdded(enterpriseId, gatewayId);
+            _ = VerifyGatewaySensorsAsync(gatewayId, enterpriseId);
             return (gatewayId, null);
+        }
+
+        /// <summary>Asks the device (via GET_SENSORS) which sensors it has, persists them on the Gateway and broadcasts the update.</summary>
+        private async Task VerifyGatewaySensorsAsync(string gatewayId, int enterpriseId)
+        {
+            try
+            {
+                (GetSensorsData? Data, string? Error) result;
+                using (var scope = _provider.CreateScope())
+                {
+                    var commandService = scope.ServiceProvider.GetRequiredService<IDeviceCommandService>();
+                    result = await commandService.GetSensorsAsync(gatewayId);
+                }
+
+                if (result.Data == null)
+                {
+                    _logger.LogWarning("GET_SENSORS failed for newly added gateway {GatewayId}: {Error}", gatewayId, result.Error);
+                    return;
+                }
+
+                var availableSensors = result.Data.Sensors
+                    .Select(s => SensorTypeMapper.ToPanelType(s.Type))
+                    .Where(t => t.HasValue)
+                    .Select(t => t!.Value)
+                    .Distinct()
+                    .ToList();
+
+                using (var scope = _provider.CreateScope())
+                {
+                    var repo = scope.ServiceProvider.GetRequiredService<IPanelInfoRepository>();
+                    var gateway = await repo.GetGatewayByGatewayIdAsync(gatewayId);
+                    if (gateway == null)
+                    {
+                        _logger.LogWarning("Gateway {GatewayId} no longer exists; discarding GET_SENSORS result", gatewayId);
+                        return;
+                    }
+                    gateway.AvailableSensors = availableSensors;
+                    gateway.IsSetup = true;
+                    await repo.SaveAll();
+                }
+
+                await EnsureStoreInitializedAsync();
+                var perEnterprise = _store.GetOrAdd(enterpriseId, _ => new ConcurrentDictionary<string, SystemMessageModel>());
+                var systemData = perEnterprise.AddOrUpdate(
+                    gatewayId,
+                    _ => new SystemMessageModel { GatewayId = gatewayId, IsConnected = false, AvailableSensors = availableSensors },
+                    (_, existing) => { existing.AvailableSensors = availableSensors; return existing; });
+
+                await _hubBroadcast.BroadcastGatewaySystemInfo(enterpriseId, systemData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verifying sensors for gateway {GatewayId}", gatewayId);
+            }
         }
 
         public async Task<(bool Success, string? Error)> DeleteGatewayAsync(string gatewayId, int enterpriseId)
@@ -157,6 +215,8 @@ namespace VanadiumAPI.Services
                 (_, d) => d);
 
             var wasConnected = perEnterprise.TryGetValue(gatewayId, out var previous) && previous.IsConnected;
+            if (previous != null)
+                systemData.AvailableSensors = previous.AvailableSensors;
             perEnterprise[gatewayId] = systemData;
 
             if (!wasConnected)
