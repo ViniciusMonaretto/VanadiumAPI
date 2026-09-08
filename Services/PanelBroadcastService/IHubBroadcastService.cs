@@ -18,6 +18,10 @@ namespace VanadiumAPI.Services
         void RemoveGateway(string gatewayId, IEnumerable<int> panelIds);
         Task BroadcastPanelAdded(int enterpriseId, PanelDto panelDto);
         Task BroadcastPanelRemoved(int enterpriseId, int panelId);
+
+        /// <summary>Pushes a user-facing error to every connection on the enterprise. Used by background
+        /// device-configuration tasks, whose originating hub invocation has already returned.</summary>
+        Task BroadcastError(int enterpriseId, string message);
         void AddPanel(int enterpriseId, int panelId, string gatewayId);
         void RemovePanel(int panelId, string gatewayId);
         Task BroadcastGroupCreated(int enterpriseId, GroupDto groupDto);

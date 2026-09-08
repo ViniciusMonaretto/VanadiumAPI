@@ -83,12 +83,13 @@ namespace VanadiumAPI.Services
 
             await AddGatewayToStoreAsync(enterpriseId, gatewayId);
             await _hubBroadcast.BroadcastGatewayAdded(enterpriseId, gatewayId);
-            _ = VerifyGatewaySensorsAsync(gatewayId, enterpriseId);
+            _ = RefreshGatewaySensorsAsync(gatewayId, enterpriseId);
             return (gatewayId, null);
         }
 
         /// <summary>Asks the device (via GET_SENSORS) which sensors it has, persists them on the Gateway and broadcasts the update.</summary>
-        private async Task VerifyGatewaySensorsAsync(string gatewayId, int enterpriseId)
+        public async Task<(IReadOnlyList<PanelType>? AvailableSensors, string? Error)> RefreshGatewaySensorsAsync(
+            string gatewayId, int enterpriseId, CancellationToken ct = default)
         {
             try
             {
@@ -96,13 +97,13 @@ namespace VanadiumAPI.Services
                 using (var scope = _provider.CreateScope())
                 {
                     var commandService = scope.ServiceProvider.GetRequiredService<IDeviceCommandService>();
-                    result = await commandService.GetSensorsAsync(gatewayId);
+                    result = await commandService.GetSensorsAsync(gatewayId, ct);
                 }
 
                 if (result.Data == null)
                 {
-                    _logger.LogWarning("GET_SENSORS failed for newly added gateway {GatewayId}: {Error}", gatewayId, result.Error);
-                    return;
+                    _logger.LogWarning("GET_SENSORS failed for gateway {GatewayId}: {Error}", gatewayId, result.Error);
+                    return (null, result.Error ?? "Não foi possível obter a lista de sensores do gateway");
                 }
 
                 var availableSensors = result.Data.Sensors
@@ -119,8 +120,10 @@ namespace VanadiumAPI.Services
                     if (gateway == null)
                     {
                         _logger.LogWarning("Gateway {GatewayId} no longer exists; discarding GET_SENSORS result", gatewayId);
-                        return;
+                        return (null, "Gateway não encontrado");
                     }
+                    // Assign a new list: the JSON value converter has no ValueComparer, so an in-place
+                    // mutation would not be picked up by change tracking.
                     gateway.AvailableSensors = availableSensors;
                     gateway.IsSetup = true;
                     await repo.SaveAll();
@@ -134,10 +137,12 @@ namespace VanadiumAPI.Services
                     (_, existing) => { existing.AvailableSensors = availableSensors; return existing; });
 
                 await _hubBroadcast.BroadcastGatewaySystemInfo(enterpriseId, systemData);
+                return (availableSensors, null);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error verifying sensors for gateway {GatewayId}", gatewayId);
+                return (null, "Erro ao consultar os sensores do gateway");
             }
         }
 

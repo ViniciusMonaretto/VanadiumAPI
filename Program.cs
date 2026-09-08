@@ -13,6 +13,7 @@ using VanadiumAPI.SensorDataSaver;
 using VanadiumAPI.Services;
 using VanadiumAPI.Services.AlarmRegistry;
 using VanadiumAPI.Services.DeviceCommands;
+using VanadiumAPI.Services.PanelConfiguration;
 using VanadiumAPI.DTOs;
 using Shared.Models;
 
@@ -94,6 +95,7 @@ builder.Services.AddHostedService<GatewayHeartbeatMonitorService>();
 builder.Services.AddSingleton<IAlarmRegistryService, AlarmRegistryService>();
 builder.Services.AddSingleton<IDeviceInfoStore, DeviceInfoStore>();
 builder.Services.AddSingleton<IDeviceCommandService, DeviceCommandService>();
+builder.Services.AddSingleton<IPanelConfigurationService, PanelConfigurationService>();
 
 // SignalR (detailed errors to client only in Development — never in Production)
 builder.Services.AddSignalR(options =>

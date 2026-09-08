@@ -1,7 +1,9 @@
 using Data.Sqlite;
 using Shared.Models;
+using Shared.Models.Mqtt;
 using VanadiumAPI.DTO;
 using VanadiumAPI.Services.AlarmRegistry;
+using VanadiumAPI.Services.PanelConfiguration;
 using VanadiumAPI.SensorDataSaver;
 
 namespace VanadiumAPI.Services
@@ -12,6 +14,9 @@ namespace VanadiumAPI.Services
         private readonly IHubBroadcastService _broadcastService;
         private readonly ISensorDataSaver _sensorDataSaver;
         private readonly IAlarmRegistryService _alarmRegistry;
+        private readonly IGatewayServerService _gatewayServer;
+        private readonly IDeviceInfoStore _deviceInfoStore;
+        private readonly IPanelConfigurationService _panelConfig;
         private readonly ILogger<PanelService> _logger;
 
         public PanelService(
@@ -19,12 +24,18 @@ namespace VanadiumAPI.Services
             IHubBroadcastService broadcastService,
             ISensorDataSaver sensorDataSaver,
             IAlarmRegistryService alarmRegistry,
+            IGatewayServerService gatewayServer,
+            IDeviceInfoStore deviceInfoStore,
+            IPanelConfigurationService panelConfig,
             ILogger<PanelService> logger)
         {
             _repository = repository;
             _broadcastService = broadcastService;
             _sensorDataSaver = sensorDataSaver;
             _alarmRegistry = alarmRegistry;
+            _gatewayServer = gatewayServer;
+            _deviceInfoStore = deviceInfoStore;
+            _panelConfig = panelConfig;
             _logger = logger;
         }
 
@@ -34,6 +45,11 @@ namespace VanadiumAPI.Services
             {
                 if (dto == null || string.IsNullOrWhiteSpace(dto.GatewayId) || string.IsNullOrWhiteSpace(dto.Index))
                     return (null, "GatewayId e Index são obrigatórios");
+
+                // Index is stored as a string but addresses an int sensor_id over MQTT; a non-numeric
+                // index could never match telemetry either (SensorDataSaver matches on SensorId.ToString()).
+                if (!int.TryParse(dto.Index.Trim(), out var sensorId) || sensorId < 0)
+                    return (null, "O índice do sensor deve ser um número inteiro");
 
                 var gateway = await _repository.GetGatewayByGatewayIdAsync(dto.GatewayId.Trim());
                 if (gateway == null || gateway.EnterpriseId != enterpriseId)
@@ -47,6 +63,10 @@ namespace VanadiumAPI.Services
                 if (existing != null)
                     return (null, "Já existe um painel com esse GatewayId e Index");
 
+                var gateError = await CheckGatewaySupportsSensorAsync(gateway, enterpriseId, sensorId, dto.Type);
+                if (gateError != null)
+                    return (null, gateError);
+
                 var panel = new Panel
                 {
                     Name = dto.Name?.Trim() ?? string.Empty,
@@ -59,7 +79,9 @@ namespace VanadiumAPI.Services
                     Multiplier = dto.Multiplier,
                     SamplingMs = dto.SamplingMs,
                     Enabled = dto.Enabled,
-                    Type = dto.Type
+                    Type = dto.Type,
+                    // Cleared once the gateway confirms SET_SENSOR_CONFIG below.
+                    Configuring = true
                 };
                 var created = await _repository.CreatePanelAsync(panel);
                 if (created == null)
@@ -72,6 +94,8 @@ namespace VanadiumAPI.Services
                 panel = created;
                 _sensorDataSaver.AddPanel(panel);
                 var panelDto = new PanelDto(panel);
+                // Must precede the device round-trip: this populates the panel's subscriber set, which is
+                // the only audience of the BroadcastPanelChange that clears the Configuring flag.
                 _broadcastService.AddPanel(enterpriseId, panel.Id, panel.GatewayId);
                 try
                 {
@@ -84,6 +108,8 @@ namespace VanadiumAPI.Services
                         panel.Id, enterpriseId);
                 }
 
+                _panelConfig.StartEnable(panel, enterpriseId, sensorId);
+
                 return (panelDto, null);
             }
             catch (Exception ex)
@@ -92,6 +118,41 @@ namespace VanadiumAPI.Services
                     enterpriseId, dto?.GatewayId, dto?.Index);
                 return (null, "Erro interno ao adicionar o painel");
             }
+        }
+
+        /// <summary>
+        /// A panel may only be created once GET_SENSORS has succeeded for its gateway. Probes the device
+        /// if that has never happened, then verifies the sensor exists and is of the requested type.
+        /// Returns null when the panel may be created, or the user-facing reason it may not.
+        /// </summary>
+        private async Task<string?> CheckGatewaySupportsSensorAsync(Gateway gateway, int enterpriseId, int sensorId, PanelType type)
+        {
+            if (!gateway.IsSetup)
+            {
+                var (_, refreshError) = await _gatewayServer.RefreshGatewaySensorsAsync(gateway.GatewayId, enterpriseId);
+                if (refreshError != null)
+                    return "Não foi possível obter a lista de sensores do gateway. Verifique se ele está online e tente novamente.";
+            }
+
+            // The cache holds the full GET_SENSORS result, so it can check the exact sensor_id -> type
+            // pairing. AvailableSensors only holds a distinct set of types, with no ids.
+            var caps = _deviceInfoStore.GetSensorCapabilities(gateway.GatewayId);
+            if (caps != null)
+            {
+                var match = caps.FirstOrDefault(s => s.SensorId == sensorId);
+                if (match == null)
+                    return $"O gateway não possui o sensor de índice {sensorId}";
+                if (SensorTypeMapper.ToPanelType(match.Type) != type)
+                    return $"O sensor de índice {sensorId} do gateway é do tipo '{match.Type}'";
+                return null;
+            }
+
+            // Cache is cold (the process restarted since the gateway was probed): fall back to the
+            // persisted type set.
+            if (!gateway.AvailableSensors.Contains(type))
+                return "O gateway não suporta sensores desse tipo";
+
+            return null;
         }
 
         public async Task<(PanelDto? Panel, string? Error)> UpdatePanelAsync(UpdatePanelDto dto, int enterpriseId)
@@ -106,6 +167,11 @@ namespace VanadiumAPI.Services
             var gateway = await _repository.GetGatewayByGatewayIdAsync(panel.GatewayId);
             if (gateway == null || gateway.EnterpriseId != enterpriseId)
                 return (null, "Painel não pertence à empresa selecionada");
+
+            // An update writes SamplingMs/Enabled, exactly what an outstanding SET_SENSOR_CONFIG is
+            // asserting. A stale Configuring panel that is not in flight stays editable.
+            if (_panelConfig.IsInFlight(panel.Id))
+                return (null, "Painel já está sendo configurado. Aguarde a conclusão.");
 
             if (dto.Name != null) panel.Name = dto.Name.Trim();
             if (dto.Color != null) panel.Color = dto.Color.Trim();
@@ -227,6 +293,42 @@ namespace VanadiumAPI.Services
             if (gateway == null || gateway.EnterpriseId != enterpriseId)
                 return (false, "Painel não pertence à empresa selecionada");
 
+            if (_panelConfig.IsInFlight(panelId))
+                return (false, "Painel já está sendo configurado. Aguarde a conclusão.");
+
+            // Not addressable on the device, so there is nothing to disable there.
+            if (!int.TryParse(panel.Index, out var sensorId) || sensorId < 0)
+                return await PurgePanelLocallyAsync(panel, enterpriseId);
+
+            // Configuring means the device never confirmed this panel, so its sensor was never enabled:
+            // there is nothing to undo. This is also the escape hatch for a panel whose enable failed.
+            if (panel.Configuring)
+                return await PurgePanelLocallyAsync(panel, enterpriseId);
+
+            // A gateway the heartbeat says is offline cannot answer; the round-trip would only time out.
+            var gatewayInfo = await _gatewayServer.GetGatewayInfoByEnterpriseAsync(enterpriseId);
+            if (!gatewayInfo.TryGetValue(panel.GatewayId, out var info) || !info.IsConnected)
+            {
+                _logger.LogWarning("Gateway {GatewayId} is offline; deleting panel {PanelId} locally without disabling its sensor",
+                    panel.GatewayId, panelId);
+                return await PurgePanelLocallyAsync(panel, enterpriseId);
+            }
+
+            panel.Configuring = true;
+            if (!await _repository.UpdatePanelAsync(panel))
+                return (false, "Erro ao atualizar o painel");
+
+            // The row stays until the device confirms, so its telemetry is still legitimately recorded.
+            await _broadcastService.BroadcastPanelChange(PanelChangeAction.Update, new PanelDto(panel));
+            _panelConfig.StartDisableAndDelete(panel, enterpriseId, sensorId);
+            return (true, null);
+        }
+
+        /// <summary>Removes the panel from the system without touching the device. Used when the device
+        /// has nothing to disable (the panel was never confirmed) or cannot be reached.</summary>
+        private async Task<(bool Success, string? Error)> PurgePanelLocallyAsync(Panel panel, int enterpriseId)
+        {
+            var panelId = panel.Id;
             var gatewayId = panel.GatewayId;
             var index = panel.Index;
             if (!await _repository.DeletePanelAsync(panel))

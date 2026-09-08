@@ -27,6 +27,10 @@ namespace Shared.Models
         public int Multiplier { get; set; }
         public int SamplingMs { get; set; }
         public bool Enabled { get; set; } = true;
+
+        /// <summary>True while an unconfirmed SET_SENSOR_CONFIG round-trip is outstanding or has failed.
+        /// Such a panel was never accepted by the device; deleting it is a local-only purge.</summary>
+        public bool Configuring { get; set; }
         public PanelType Type { get; set; }
         public ICollection<Alarm> Alarms { get; set; }
         public int DisplayedType { get; set; }

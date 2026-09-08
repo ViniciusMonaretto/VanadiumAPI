@@ -33,8 +33,9 @@ iocloud/{deviceId}/commands/response (device -> host):
   "status": "ok"
 }
 
-Commands: 1=REBOOT, 3=GET_SENSORS. Other commands are answered with status "error"
-(this script only simulates a single flow sensor per gateway, no config mutation).
+Commands: 1=REBOOT, 2=SET_SENSOR_CONFIG, 3=GET_SENSORS, 4=SET_SENSOR_CONFIG_BULK.
+Other commands are answered with status "error"
+(this script only simulates a single flow sensor per gateway, sensor_id must be 0).
 """
 
 import json
@@ -59,7 +60,10 @@ GATEWAY_BY_ID = {g["id"]: g for g in GATEWAYS}
 START_TIME = time.monotonic()
 
 FLOW_CAPABILITIES = {"unit": "L/s", "range_min": 0, "range_max": 50, "resolution": 0.01}
-FLOW_CONFIG = {"offset": 0, "gain": 1, "sampling_ms": 5000, "enabled": True}
+
+# Mutable per-gateway sensor config, seeded with the default and updated by SET_SENSOR_CONFIG(_BULK).
+for g in GATEWAYS:
+    g["config"] = {"offset": 0, "gain": 1, "sampling_ms": 5000, "enabled": True}
 
 
 def handle_reboot(gateway_id: str, params: Dict[str, Any]) -> Tuple[Dict[str, Any], str]:
@@ -75,15 +79,54 @@ def handle_get_sensors(gateway_id: str, params: Dict[str, Any]) -> Tuple[Dict[st
             "sensor_id": 0,
             "type": "flow",
             "capabilities": FLOW_CAPABILITIES,
-            "config": FLOW_CONFIG,
+            "config": GATEWAY_BY_ID[gateway_id]["config"],
         }
     ]
     return {"sensors": sensors}, "ok"
 
 
+def apply_sensor_config(gateway_id: str, params: Dict[str, Any]) -> Optional[str]:
+    """Applies a single SET_SENSOR_CONFIG item to a gateway's sensor. Returns an error message, or None on success."""
+    if gateway_id not in GATEWAY_BY_ID:
+        return "unknown device"
+
+    sensor_id = params.get("sensor_id")
+    if sensor_id != 0:
+        return f"unknown sensor_id {sensor_id}"
+
+    config = GATEWAY_BY_ID[gateway_id]["config"]
+    config["offset"] = params.get("offset", config["offset"])
+    config["gain"] = params.get("gain", config["gain"])
+    config["sampling_ms"] = params.get("sampling_ms", config["sampling_ms"])
+    config["enabled"] = params.get("enabled", config["enabled"])
+    return None
+
+
+def handle_set_sensor_config(gateway_id: str, params: Dict[str, Any]) -> Tuple[Dict[str, Any], str]:
+    error = apply_sensor_config(gateway_id, params)
+    if error is not None:
+        sensor_id = params.get("sensor_id")
+        return {"errors": [{"sensor_id": sensor_id, "error": error}]}, "error"
+    return {}, "ok"
+
+
+def handle_set_sensor_config_bulk(gateway_id: str, params: Dict[str, Any]) -> Tuple[Dict[str, Any], str]:
+    errors = []
+    for item in params.get("sensors") or []:
+        error = apply_sensor_config(gateway_id, item)
+        if error is not None:
+            errors.append({"sensor_id": item.get("sensor_id"), "error": error})
+
+    if errors:
+        return {"errors": errors}, "error"
+    return {}, "ok"
+
+
 COMMAND_HANDLERS = {
     1: handle_reboot,
+    2: handle_set_sensor_config,
     3: handle_get_sensors,
+    4: handle_set_sensor_config_bulk,
 }
 
 

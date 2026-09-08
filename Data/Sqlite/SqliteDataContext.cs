@@ -22,6 +22,7 @@ namespace Data.Sqlite
             EnsureAlarmSeverityColumn();
             EnsurePanelSamplingMsColumn();
             EnsurePanelEnabledColumn();
+            EnsurePanelConfiguringColumn();
             EnsureGatewayIsSetupColumn();
             EnsureGatewayAvailableSensorsColumn();
             if (Users != null && !Users.Any())
@@ -202,6 +203,36 @@ namespace Data.Sqlite
             catch (Exception ex)
             {
                 Console.WriteLine("EnsurePanelEnabledColumn: " + ex.Message);
+            }
+        }
+
+        /// <summary>SQLite <see cref="Database.EnsureCreated"/> does not add columns; extend existing DBs.
+        /// Defaults to 0: panels that predate the device-configuration flow are assumed already configured.</summary>
+        private void EnsurePanelConfiguringColumn()
+        {
+            try
+            {
+                var connection = Database.GetDbConnection();
+                var wasOpen = connection.State == ConnectionState.Open;
+                if (!wasOpen)
+                    Database.OpenConnection();
+                try
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "SELECT 1 FROM pragma_table_info('Panels') WHERE name='Configuring' LIMIT 1";
+                    if (cmd.ExecuteScalar() != null)
+                        return;
+                    Database.ExecuteSqlRaw("ALTER TABLE Panels ADD COLUMN Configuring INTEGER NOT NULL DEFAULT 0");
+                }
+                finally
+                {
+                    if (!wasOpen)
+                        Database.CloseConnection();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("EnsurePanelConfiguringColumn: " + ex.Message);
             }
         }
 

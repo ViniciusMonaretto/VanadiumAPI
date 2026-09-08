@@ -157,6 +157,14 @@ namespace VanadiumAPI.Services
                 await _hubContext.Clients.Clients(connections.ToList()).SendAsync("PanelRemoved", panelId);
         }
 
+        /// <summary>Pushes a user-facing error to every connection on the enterprise. Used by background
+        /// device-configuration tasks, whose originating hub invocation has already returned.</summary>
+        public async Task BroadcastError(int enterpriseId, string message)
+        {
+            if (_enterpriseConnections.TryGetValue(enterpriseId, out var connections) && connections.Any())
+                await _hubContext.Clients.Clients(connections.ToList()).SendAsync("Error", message);
+        }
+
         public void AddPanel(int enterpriseId, int panelId, string gatewayId)
         {
             if (!_enterpriseConnections.TryGetValue(enterpriseId, out var connections)) return;

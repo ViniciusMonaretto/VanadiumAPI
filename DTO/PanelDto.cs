@@ -15,6 +15,8 @@ namespace VanadiumAPI.DTO
         public int Multiplier { get; set; }
         public int SamplingMs { get; set; }
         public bool Enabled { get; set; }
+        /// <summary>True while the gateway has not confirmed this panel's sensor configuration.</summary>
+        public bool Configuring { get; set; }
         public PanelType Type { get; set; }
         public List<AlarmDto> Alarms { get; set; } = new List<AlarmDto>();
         /// <summary>Latest high-threshold alarm for this panel (value above threshold triggers), if any.</summary>
@@ -46,6 +48,7 @@ namespace VanadiumAPI.DTO
             Multiplier = panel.Multiplier;
             SamplingMs = panel.SamplingMs;
             Enabled = panel.Enabled;
+            Configuring = panel.Configuring;
             Type = panel.Type;
             DisplayedType = panel.DisplayedType;
             Alarms = panel.Alarms?.Select(a => new AlarmDto(a)).ToList() ?? new List<AlarmDto>();

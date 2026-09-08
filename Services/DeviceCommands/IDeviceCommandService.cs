@@ -6,6 +6,9 @@ namespace VanadiumAPI.Services.DeviceCommands
     {
         Task<(bool Ok, string? Error)> RebootAsync(string deviceId, CancellationToken ct = default);
         Task<(GetSensorsData? Data, string? Error)> GetSensorsAsync(string deviceId, CancellationToken ct = default);
+        /// <summary>Configures a single sensor (cmd=2). Never throws: every failure is returned as an Error string,
+        /// since callers run as detached background tasks.</summary>
+        Task<(bool Ok, string? Error)> SetSensorConfigAsync(string deviceId, SetSensorConfigParams config, CancellationToken ct = default);
         Task<(bool Ok, List<BulkConfigError>? Errors, string? Error)> SetSensorConfigBulkAsync(string deviceId, List<SetSensorConfigParams> sensors, CancellationToken ct = default);
         Task<(GetDeviceInfoData? Data, string? Error)> GetDeviceInfoAsync(string deviceId, CancellationToken ct = default);
     }

@@ -59,6 +59,51 @@ namespace VanadiumAPI.Services.DeviceCommands
             }
         }
 
+        public async Task<(bool Ok, string? Error)> SetSensorConfigAsync(string deviceId, SetSensorConfigParams config, CancellationToken ct = default)
+        {
+            try
+            {
+                var response = await _mqttService.SendCommandAsync(deviceId, DeviceCommand.SetSensorConfig, config, _defaultTimeout, ct);
+                if (response.Status == "ok")
+                    return (true, null);
+
+                // cmd=2 reuses the cmd=4 error shape: {"errors":[{"sensor_id":n,"error":"..."}]}
+                try
+                {
+                    if (response.Data.ValueKind == JsonValueKind.Object)
+                    {
+                        var errorData = response.Data.Deserialize<BulkConfigErrorData>();
+                        if (errorData != null && errorData.Errors.Count > 0)
+                            return (false, $"Dispositivo recusou o sensor {errorData.Errors[0].SensorId}: {errorData.Errors[0].Error}");
+                    }
+                }
+                catch (JsonException)
+                {
+                    // Device sent a shape we don't model; fall through to the generic status message.
+                }
+
+                return (false, $"Dispositivo retornou status '{response.Status}'");
+            }
+            catch (TimeoutException)
+            {
+                // Also raised when the caller's token is cancelled (see MqttService.SendCommandAsync).
+                _logger.LogWarning("SET_SENSOR_CONFIG timed out for device {DeviceId} sensor {SensorId}", deviceId, config.SensorId);
+                return (false, "Timeout aguardando resposta do dispositivo");
+            }
+            catch (InvalidOperationException ex)
+            {
+                // PublishAsync reported failure.
+                _logger.LogWarning(ex, "SET_SENSOR_CONFIG could not be published for device {DeviceId}", deviceId);
+                return (false, "Não foi possível enviar o comando ao dispositivo");
+            }
+            catch (Exception ex)
+            {
+                // Broker down: MQTTnet throws from PublishAsync. Callers are detached tasks, so nothing may escape.
+                _logger.LogError(ex, "SET_SENSOR_CONFIG failed for device {DeviceId}", deviceId);
+                return (false, "Erro ao comunicar com o dispositivo");
+            }
+        }
+
         public async Task<(bool Ok, List<BulkConfigError>? Errors, string? Error)> SetSensorConfigBulkAsync(string deviceId, List<SetSensorConfigParams> sensors, CancellationToken ct = default)
         {
             try
