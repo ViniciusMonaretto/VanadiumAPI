@@ -6,6 +6,7 @@ using Shared.Models;
 using Shared.Models.Mqtt;
 using VanadiumAPI.DTO;
 using VanadiumAPI.Services.DeviceCommands;
+using VanadiumAPI.Services.PanelConfiguration;
 
 namespace VanadiumAPI.Services
 {
@@ -24,6 +25,10 @@ namespace VanadiumAPI.Services
             _hubBroadcast = hubBroadcast;
             _logger = logger;
         }
+
+        // Resolved lazily (not via constructor) to avoid a DI cycle: PanelConfigurationService depends
+        // on DeviceCommandService, which depends on MqttService, which depends on IGatewayServerService.
+        private IPanelConfigurationService PanelConfig => _provider.GetRequiredService<IPanelConfigurationService>();
 
         public async Task InitializeStoreAsync() => await EnsureStoreInitializedAsync();
 
@@ -225,7 +230,12 @@ namespace VanadiumAPI.Services
             perEnterprise[gatewayId] = systemData;
 
             if (!wasConnected)
+            {
                 await _hubBroadcast.BroadcastGatewaySystemInfo(enterpriseId, systemData);
+                // The gateway just came back online: resume any panel whose SET_SENSOR_CONFIG never
+                // got confirmed while it was unreachable.
+                PanelConfig.ResumePendingConfigurations(gatewayId, enterpriseId);
+            }
         }
 
         public async Task UpdateGatewayLastActivityAsync(string gatewayId)

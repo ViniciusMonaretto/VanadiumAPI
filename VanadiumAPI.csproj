@@ -12,6 +12,13 @@
     <Compile Remove="Shared/**/*.cs" />
     <Compile Remove="**/obj/**/*.cs" />
   </ItemGroup>
+  <!-- Exclude the test project (referenced separately; must not be compiled into VanadiumAPI itself) -->
+  <ItemGroup>
+    <Compile Remove="VanadiumAPI.Tests/**/*.cs" />
+    <Content Remove="VanadiumAPI.Tests/**/*" />
+    <EmbeddedResource Remove="VanadiumAPI.Tests/**/*" />
+    <None Remove="VanadiumAPI.Tests/**/*" />
+  </ItemGroup>
 
   <PropertyGroup>
     <!-- When true, building VanadiumAPI also runs npm build and copies Angular to wwwroot (see VanadiumWebApp.Build.csproj). -->

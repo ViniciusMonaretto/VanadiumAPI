@@ -19,5 +19,11 @@ namespace VanadiumAPI.Services.PanelConfiguration
         /// only once the device answers "ok". On failure the row is left Configuring so a retry
         /// purges it locally. Never throws.</summary>
         void StartDisableAndDelete(Panel panel, int enterpriseId, int sensorId);
+
+        /// <summary>Called when a gateway's heartbeat marks it back online. Finds every panel of that
+        /// gateway still left Configuring (its SET_SENSOR_CONFIG never got confirmed, e.g. because the
+        /// gateway was offline) and not already in flight, and resumes them in one SET_SENSOR_CONFIG_BULK
+        /// round-trip instead of one command per panel. Never throws.</summary>
+        void ResumePendingConfigurations(string gatewayId, int enterpriseId);
     }
 }

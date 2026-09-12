@@ -148,6 +148,106 @@ namespace VanadiumAPI.Services.PanelConfiguration
             await _broadcast.BroadcastPanelRemoved(enterpriseId, panel.Id);
         }
 
+        public void ResumePendingConfigurations(string gatewayId, int enterpriseId)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await RunResumePendingAsync(gatewayId, enterpriseId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Resume-pending-configuration task crashed for gateway {GatewayId}", gatewayId);
+                }
+            });
+        }
+
+        private async Task RunResumePendingAsync(string gatewayId, int enterpriseId)
+        {
+            List<Panel> pending;
+            using (var scope = _provider.CreateScope())
+            {
+                var repo = scope.ServiceProvider.GetRequiredService<IPanelInfoRepository>();
+                var panels = await repo.GetAllPanels(p => p.GatewayId == gatewayId && p.Configuring);
+                pending = panels
+                    .Where(p => int.TryParse(p.Index, out var sid) && sid >= 0)
+                    .ToList();
+            }
+            if (pending.Count == 0) return;
+
+            // Claim every panel up front so a concurrent Start*/heartbeat call can't also pick it up.
+            var claimed = pending.Where(p => _inFlight.TryAdd(p.Id, 0)).ToList();
+            if (claimed.Count == 0) return;
+
+            try
+            {
+                var sensors = claimed
+                    .Select(p => BuildParams(int.Parse(p.Index), p, enabled: true))
+                    .ToList();
+                var (ok, errors, error) = await _commands.SetSensorConfigBulkAsync(gatewayId, sensors);
+
+                if (ok)
+                {
+                    await FinishConfiguredPanelsAsync(claimed, gatewayId);
+                    return;
+                }
+
+                if (errors != null && errors.Count > 0)
+                {
+                    var failedSensorIds = errors.Select(e => e.SensorId).ToHashSet();
+                    var succeeded = claimed.Where(p => !failedSensorIds.Contains(int.Parse(p.Index))).ToList();
+                    await FinishConfiguredPanelsAsync(succeeded, gatewayId);
+
+                    // Panels whose sensor_id is in failedSensorIds stay Configuring for the next heartbeat retry.
+                    _logger.LogWarning("Gateway {GatewayId} rejected {Count} sensor(s) while resuming pending configuration",
+                        gatewayId, errors.Count);
+                    await _broadcast.BroadcastError(enterpriseId,
+                        $"Falha ao concluir a configuração de {errors.Count} sensor(es) no gateway {gatewayId}");
+                    return;
+                }
+
+                _logger.LogWarning("SET_SENSOR_CONFIG_BULK failed while resuming pending configuration for gateway {GatewayId}: {Error}",
+                    gatewayId, error);
+                await _broadcast.BroadcastError(enterpriseId,
+                    $"Falha ao concluir a configuração pendente do gateway {gatewayId}: {error}");
+            }
+            finally
+            {
+                foreach (var p in claimed)
+                    _inFlight.TryRemove(p.Id, out _);
+            }
+        }
+
+        /// <summary>Clears Configuring on each panel the device confirmed and broadcasts the change.</summary>
+        private async Task FinishConfiguredPanelsAsync(IReadOnlyCollection<Panel> panels, string gatewayId)
+        {
+            if (panels.Count == 0) return;
+
+            using var scope = _provider.CreateScope();
+            var repo = scope.ServiceProvider.GetRequiredService<IPanelInfoRepository>();
+            foreach (var panel in panels)
+            {
+                var fresh = await repo.GetPanelById(panel.Id);
+                if (fresh == null)
+                {
+                    _logger.LogDebug("Panel {PanelId} no longer exists; discarding resumed SET_SENSOR_CONFIG confirmation", panel.Id);
+                    continue;
+                }
+
+                fresh.Configuring = false;
+                if (!await repo.UpdatePanelAsync(fresh))
+                {
+                    _logger.LogError("Failed to clear Configuring on panel {PanelId} after gateway {GatewayId} confirmed resumed config",
+                        panel.Id, gatewayId);
+                    continue;
+                }
+
+                _sensorDataSaver.UpdatePanel(fresh);
+                await _broadcast.BroadcastPanelChange(PanelChangeAction.Update, new PanelDto(fresh));
+            }
+        }
+
         private static SetSensorConfigParams BuildParams(int sensorId, Panel panel, bool enabled) => new()
         {
             SensorId = sensorId,
