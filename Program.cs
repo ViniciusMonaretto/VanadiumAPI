@@ -14,6 +14,7 @@ using VanadiumAPI.Services;
 using VanadiumAPI.Services.AlarmRegistry;
 using VanadiumAPI.Services.DeviceCommands;
 using VanadiumAPI.Services.PanelConfiguration;
+using VanadiumAPI.Services.Prediction;
 using VanadiumAPI.DTOs;
 using Shared.Models;
 
@@ -29,6 +30,11 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttService>());
 builder.Services.AddSingleton<SensorDataSaver>();
 builder.Services.AddSingleton<ISensorDataSaver>(sp => sp.GetRequiredService<SensorDataSaver>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SensorDataSaver>());
+
+// IoCloud Predict (Orion) faults → anomaly alarm events; same singleton + hosted-service pattern
+builder.Services.AddSingleton<PredictionService>();
+builder.Services.AddSingleton<IPredictionService>(sp => sp.GetRequiredService<PredictionService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<PredictionService>());
 
 // MongoDB
 var mongoConnectionString = builder.Configuration.GetSection("Mongo")["ConnectionString"];

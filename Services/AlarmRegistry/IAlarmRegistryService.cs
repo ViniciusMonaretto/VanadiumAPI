@@ -23,5 +23,13 @@ namespace VanadiumAPI.Services.AlarmRegistry
         void NotifyAlarmDeleted(int alarmId);
 
         Task ProcessReadingForAlarmsAsync(Panel panel, PanelReading reading, CancellationToken cancellationToken = default);
+
+        /// <summary>Records an IoCloud Predict fault start as an event on the panel's anomaly alarm
+        /// (created on first use). Idempotent per <paramref name="zoneId"/>. True if a new event was recorded.</summary>
+        Task<bool> ProcessPredictionStartedAsync(Panel panel, string zoneId, DateTime start, AlarmSeverity severity, float triggeredValue, CancellationToken cancellationToken = default);
+
+        /// <summary>Events of the given panels (only those in <paramref name="enterpriseId"/>), oldest first,
+        /// optionally limited to a time range and alarm kind.</summary>
+        Task<IReadOnlyList<AlarmEvent>> GetAlarmEventsForPanelsAsync(int enterpriseId, IReadOnlyCollection<int> panelIds, DateTime? startDate, DateTime? endDate, AlarmKind? kind, int maxEvents = 5000, CancellationToken cancellationToken = default);
     }
 }

@@ -202,7 +202,7 @@ namespace VanadiumAPI.Services
             else
             {
                 var existingHigh = panelForAlarms.Alarms?
-                    .Where(a => a.IsGreaterThan)
+                    .Where(a => a.Kind == AlarmKind.Threshold && a.IsGreaterThan)
                     .OrderByDescending(a => a.Id)
                     .FirstOrDefault();
                 if (existingHigh != null)
@@ -238,7 +238,7 @@ namespace VanadiumAPI.Services
             else
             {
                 var existingLow = panelForAlarms.Alarms?
-                    .Where(a => !a.IsGreaterThan)
+                    .Where(a => a.Kind == AlarmKind.Threshold && !a.IsGreaterThan)
                     .OrderByDescending(a => a.Id)
                     .FirstOrDefault();
                 if (existingLow != null)
@@ -344,7 +344,8 @@ namespace VanadiumAPI.Services
         {
             var fresh = await _repository.GetPanelById(panelId);
             if (fresh?.Alarms == null) return null;
-            var toRemove = fresh.Alarms.Where(a => a.IsGreaterThan == isGreaterThan).ToList();
+            // Never the anomaly alarm: clearing a min alarm must not delete IoCloud Predict alarms.
+            var toRemove = fresh.Alarms.Where(a => a.Kind == AlarmKind.Threshold && a.IsGreaterThan == isGreaterThan).ToList();
             if (toRemove.Count == 0) return null;
             foreach (var alarm in toRemove)
                 _repository.Delete(alarm);

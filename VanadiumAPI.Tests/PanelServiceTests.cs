@@ -251,6 +251,55 @@ namespace VanadiumAPI.Tests
             _broadcastService.Verify(b => b.BroadcastPanelChange(PanelChangeAction.Update, It.IsAny<PanelDto>()), Times.Once);
         }
 
+        [Fact]
+        public async Task UpdatePanelAsync_ClearingMinMax_KeepsTheAnomalyAlarm()
+        {
+            var low = new Alarm { Id = 10, PanelId = 1, Threshold = 2f, IsGreaterThan = false };
+            var high = new Alarm { Id = 11, PanelId = 1, Threshold = 8f, IsGreaterThan = true };
+            var anomaly = new Alarm { Id = 12, PanelId = 1, Kind = AlarmKind.Anomaly, IsGreaterThan = false };
+            var existing = new Panel
+            {
+                Id = 1, GatewayId = "GW1", Name = "P", Gain = 1, Enabled = true,
+                Alarms = new List<Alarm> { low, high, anomaly }
+            };
+            _repository.Setup(r => r.GetPanelById(1)).ReturnsAsync(existing);
+            _repository.Setup(r => r.GetGatewayByGatewayIdAsync("GW1")).ReturnsAsync(MakeGateway());
+            _panelConfig.Setup(p => p.IsInFlight(1)).Returns(false);
+            _repository.Setup(r => r.UpdatePanelAsync(It.IsAny<Panel>())).ReturnsAsync(true);
+            _repository.Setup(r => r.SaveAll()).ReturnsAsync(true);
+
+            // MaxAlarm/MinAlarm null = the user cleared both threshold alarms
+            var (_, error) = await CreateService().UpdatePanelAsync(new UpdatePanelDto { Id = 1 }, EnterpriseId);
+
+            Assert.Null(error);
+            _repository.Verify(r => r.Delete(low), Times.Once);
+            _repository.Verify(r => r.Delete(high), Times.Once);
+            _repository.Verify(r => r.Delete(anomaly), Times.Never);
+            _alarmRegistry.Verify(a => a.NotifyAlarmDeleted(12), Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdatePanelAsync_SettingMinAlarm_DoesNotOverwriteTheAnomalyAlarm()
+        {
+            var anomaly = new Alarm { Id = 12, PanelId = 1, Kind = AlarmKind.Anomaly, IsGreaterThan = false, Threshold = 0f };
+            var existing = new Panel
+            {
+                Id = 1, GatewayId = "GW1", Name = "P", Gain = 1, Enabled = true,
+                Alarms = new List<Alarm> { anomaly }
+            };
+            _repository.Setup(r => r.GetPanelById(1)).ReturnsAsync(existing);
+            _repository.Setup(r => r.GetGatewayByGatewayIdAsync("GW1")).ReturnsAsync(MakeGateway());
+            _panelConfig.Setup(p => p.IsInFlight(1)).Returns(false);
+            _repository.Setup(r => r.UpdatePanelAsync(It.IsAny<Panel>())).ReturnsAsync(true);
+            _repository.Setup(r => r.SaveAll()).ReturnsAsync(true);
+
+            var (_, error) = await CreateService().UpdatePanelAsync(new UpdatePanelDto { Id = 1, MinAlarm = 2f }, EnterpriseId);
+
+            Assert.Null(error);
+            Assert.Equal(0f, anomaly.Threshold);   // untouched
+            _repository.Verify(r => r.Add(It.Is<Alarm>(a => a.Kind == AlarmKind.Threshold && !a.IsGreaterThan && a.Threshold == 2f)), Times.Once);
+        }
+
         // ---------- DeletePanelAsync ----------
 
         [Fact]

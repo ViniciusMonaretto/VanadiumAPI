@@ -161,6 +161,31 @@ namespace VanadiumAPI.Hubs
             return events.Select(e => new AlarmEventDto(e));
         }
 
+        public class AlarmEventsRequest
+        {
+            public int[] PanelIds { get; set; } = Array.Empty<int>();
+            public DateTime? StartDate { get; set; }
+            public DateTime? EndDate { get; set; }
+            /// <summary>Only events of this kind (e.g. Anomaly for the graph's fault markers); null = all.</summary>
+            public AlarmKind? Kind { get; set; }
+        }
+
+        /// <summary>
+        /// Alarm events of the given panels in a time range, oldest first — for drawing them on a graph.
+        /// Limited to panels of the connection's selected enterprise.
+        /// </summary>
+        public async Task<IEnumerable<AlarmEventDto>> GetAlarmEvents(AlarmEventsRequest request, string token)
+        {
+            var (isValid, _) = await ValidateTokenAndGetUserIdAsync(token);
+            if (!isValid) return Enumerable.Empty<AlarmEventDto>();
+            var enterpriseId = _broadcastService.GetConnectionEnterpriseId(Context.ConnectionId);
+            if (enterpriseId == null || request?.PanelIds == null || request.PanelIds.Length == 0)
+                return Enumerable.Empty<AlarmEventDto>();
+            var events = await _alarmRegistry.GetAlarmEventsForPanelsAsync(
+                enterpriseId.Value, request.PanelIds, request.StartDate, request.EndDate, request.Kind);
+            return events.Select(e => new AlarmEventDto(e));
+        }
+
         public async Task<Dictionary<string, GroupDto>> SetSelectedEnterprise(SetEnterpriseDto enterprise, string token)
         {
             var (isValid, userId) = await ValidateTokenAndGetUserIdAsync(token);

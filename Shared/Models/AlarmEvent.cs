@@ -12,5 +12,8 @@ namespace Shared.Models
         public float TriggeredValue { get; set; }
         /// <summary>Panel display name snapshot at event time.</summary>
         public string PanelName { get; set; } = string.Empty;
+        /// <summary>Id from the event's source, used to deduplicate redelivered events —
+        /// for <see cref="AlarmKind.Anomaly"/> alarms the prediction's <c>zone_id</c>. Null for threshold alarms.</summary>
+        public string? ExternalId { get; set; }
     }
 }

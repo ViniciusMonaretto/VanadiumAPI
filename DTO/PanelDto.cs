@@ -52,9 +52,11 @@ namespace VanadiumAPI.DTO
             Type = panel.Type;
             DisplayedType = panel.DisplayedType;
             Alarms = panel.Alarms?.Select(a => new AlarmDto(a)).ToList() ?? new List<AlarmDto>();
-            MaxAlarm = panel.Alarms?.Where(a => a.IsGreaterThan).OrderByDescending(a => a.Id).FirstOrDefault()?.Threshold;
-            MinAlarm = panel.Alarms?.Where(a => !a.IsGreaterThan).OrderByDescending(a => a.Id).FirstOrDefault()?.Threshold;
-            Severity = (int?)panel.Alarms?.FirstOrDefault()?.Severity;
+            // Min/max come from threshold alarms only — an anomaly alarm has IsGreaterThan=false too.
+            var thresholdAlarms = panel.Alarms?.Where(a => a.Kind == AlarmKind.Threshold).ToList();
+            MaxAlarm = thresholdAlarms?.Where(a => a.IsGreaterThan).OrderByDescending(a => a.Id).FirstOrDefault()?.Threshold;
+            MinAlarm = thresholdAlarms?.Where(a => !a.IsGreaterThan).OrderByDescending(a => a.Id).FirstOrDefault()?.Threshold;
+            Severity = (int?)thresholdAlarms?.FirstOrDefault()?.Severity;
         }
 
         public PanelDto() { }

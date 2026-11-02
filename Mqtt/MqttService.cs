@@ -9,6 +9,7 @@ using Shared.Models;
 using Shared.Models.Mqtt;
 using VanadiumAPI.SensorDataSaver;
 using VanadiumAPI.Services;
+using VanadiumAPI.Services.Prediction;
 
 namespace VanadiumAPI.Mqtt
 {
@@ -20,6 +21,7 @@ namespace VanadiumAPI.Mqtt
         private readonly ISensorDataSaver _sensorDataSaver;
         private readonly IHubBroadcastService _broadcastService;
         private readonly IGatewayServerService _gatewayServer;
+        private readonly IPredictionService _predictionService;
         private readonly HashSet<string> _subscribedTopics = new();
         private readonly Channel<(string Topic, string Payload)> _messageQueue = Channel.CreateUnbounded<(string, string)>();
 
@@ -39,12 +41,14 @@ namespace VanadiumAPI.Mqtt
             ILogger<MqttService> logger,
             ISensorDataSaver sensorDataSaver,
             IHubBroadcastService broadcastService,
-            IGatewayServerService gatewayServer)
+            IGatewayServerService gatewayServer,
+            IPredictionService predictionService)
         {
             _logger = logger;
             _sensorDataSaver = sensorDataSaver;
             _broadcastService = broadcastService;
             _gatewayServer = gatewayServer;
+            _predictionService = predictionService;
 
             var mqttFactory = new MqttClientFactory();
             _mqttClient = mqttFactory.CreateMqttClient();
@@ -138,6 +142,12 @@ namespace VanadiumAPI.Mqtt
                     break;
                 case "commands/response":
                     HandleCommandResponse(deviceId, payload);
+                    break;
+                case "predict":
+                    _predictionService.PushPrediction(deviceId, payload, isState: false);
+                    break;
+                case "predict/state":
+                    _predictionService.PushPrediction(deviceId, payload, isState: true);
                     break;
                 default:
                     _logger.LogWarning("Unknown topic suffix: {Suffix} (topic {Topic})", suffix, topic);
@@ -287,6 +297,9 @@ namespace VanadiumAPI.Mqtt
             await SubscribeAsync("iocloud/+/telemetry");
             await SubscribeAsync("iocloud/+/events");
             await SubscribeAsync("iocloud/+/commands/response");
+            // IoCloud Predict (Orion): model faults, and the retained open-fault state
+            await SubscribeAsync("iocloud/+/predict");
+            await SubscribeAsync("iocloud/+/predict/state");
         }
 
         private Task HandleDisconnected(MqttClientDisconnectedEventArgs args)

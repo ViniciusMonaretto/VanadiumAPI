@@ -8,4 +8,5 @@ using System.Runtime.Versioning;
 [assembly: AssemblyProduct("VanadiumAPI")]
 [assembly: AssemblyTitle("VanadiumAPI")]
 [assembly: AssemblyVersion("1.0.0.0")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("VanadiumAPI.Tests")]
 [assembly: TargetFramework(".NETCoreApp,Version=v8.0", FrameworkDisplayName = ".NET 8.0")]

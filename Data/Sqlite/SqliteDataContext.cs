@@ -25,6 +25,9 @@ namespace Data.Sqlite
             EnsurePanelConfiguringColumn();
             EnsureGatewayIsSetupColumn();
             EnsureGatewayAvailableSensorsColumn();
+            EnsureColumn("Alarms", "Kind", "ALTER TABLE Alarms ADD COLUMN Kind INTEGER NOT NULL DEFAULT 0");
+            EnsureColumn("AlarmEvents", "ExternalId", "ALTER TABLE AlarmEvents ADD COLUMN ExternalId TEXT NULL");
+            EnsureAlarmEventExternalIdIndex();
             if (Users != null && !Users.Any())
                 SeedDefaultAdmin();
             if (Groups != null && Panels != null && !Groups.Any() && !Panels.Any())
@@ -33,8 +36,12 @@ namespace Data.Sqlite
                 SeedDefaultEnterprise();
         }
 
+        // Fallback only: Program.cs (and tests) configure the provider through AddDbContext.
         protected override void OnConfiguring(DbContextOptionsBuilder options)
-            => options.UseSqlite("Data Source=app.db");
+        {
+            if (!options.IsConfigured)
+                options.UseSqlite("Data Source=app.db");
+        }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -71,6 +78,17 @@ namespace Data.Sqlite
                 .Property(a => a.Severity)
                 .HasConversion<int>()
                 .HasDefaultValue(AlarmSeverity.Warning);
+
+            builder.Entity<Alarm>()
+                .Property(a => a.Kind)
+                .HasConversion<int>()
+                .HasDefaultValue(AlarmKind.Threshold);
+
+            // One event per (alarm, source id): a redelivered prediction cannot fire twice.
+            // SQLite unique indexes allow many NULLs, so threshold events are unaffected.
+            builder.Entity<AlarmEvent>()
+                .HasIndex(e => new { e.AlarmId, e.ExternalId })
+                .IsUnique();
 
             builder.Entity<AlarmEvent>()
                 .HasOne(u => u.Alarm)
@@ -291,6 +309,49 @@ namespace Data.Sqlite
             catch (Exception ex)
             {
                 Console.WriteLine("EnsureGatewayAvailableSensorsColumn: " + ex.Message);
+            }
+        }
+
+        /// <summary>SQLite <see cref="Database.EnsureCreated"/> does not add columns; extend existing DBs.</summary>
+        private void EnsureColumn(string table, string column, string addColumnSql)
+        {
+            try
+            {
+                var connection = Database.GetDbConnection();
+                var wasOpen = connection.State == ConnectionState.Open;
+                if (!wasOpen)
+                    Database.OpenConnection();
+                try
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = $"SELECT 1 FROM pragma_table_info('{table}') WHERE name='{column}' LIMIT 1";
+                    if (cmd.ExecuteScalar() != null)
+                        return;
+                    Database.ExecuteSqlRaw(addColumnSql);
+                }
+                finally
+                {
+                    if (!wasOpen)
+                        Database.CloseConnection();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"EnsureColumn {table}.{column}: " + ex.Message);
+            }
+        }
+
+        /// <summary>Same index <see cref="OnModelCreating"/> declares, for DBs created before it existed.</summary>
+        private void EnsureAlarmEventExternalIdIndex()
+        {
+            try
+            {
+                Database.ExecuteSqlRaw(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS IX_AlarmEvents_AlarmId_ExternalId ON AlarmEvents (AlarmId, ExternalId)");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("EnsureAlarmEventExternalIdIndex: " + ex.Message);
             }
         }
 
